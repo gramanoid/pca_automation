@@ -170,7 +170,7 @@ with st.sidebar:
     
     # Configuration persistence
     with st.expander("💾 Save/Load Configurations", expanded=False):
-        config_persistence.render_persistence_ui()
+        config_persistence.render_persistence_ui(compact=True)
     
     # Info section
     config_sidebar.render_info_section()

@@ -111,32 +111,42 @@ class ConfigPersistence:
         for key, value in config.items():
             st.session_state[key] = value
     
-    def render_persistence_ui(self):
+    def render_persistence_ui(self, compact=False):
         """Render the configuration persistence UI"""
-        st.subheader("💾 Configuration Management")
+        if not compact:
+            st.subheader("💾 Configuration Management")
         
-        # Save current configuration
-        with st.expander("Save Current Configuration", expanded=False):
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                config_name = st.text_input("Configuration Name", key="save_config_name")
-                config_desc = st.text_area("Description (optional)", key="save_config_desc", height=60)
-            with col2:
-                st.write("")  # Spacing
-                st.write("")
-                if st.button("💾 Save", use_container_width=True):
-                    if config_name:
-                        current_config = self.get_current_config()
-                        if self.save_config(config_name, current_config, config_desc):
-                            st.success(f"Configuration '{config_name}' saved!")
-                            st.rerun()
-                    else:
-                        st.error("Please enter a configuration name")
+        # Save current configuration - no expander when compact
+        if compact:
+            st.write("**Save Current Configuration**")
+        else:
+            st.write("### Save Current Configuration")
+            
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            config_name = st.text_input("Configuration Name", key="save_config_name")
+            config_desc = st.text_area("Description (optional)", key="save_config_desc", height=60)
+        with col2:
+            st.write("")  # Spacing
+            st.write("")
+            if st.button("💾 Save", use_container_width=True):
+                if config_name:
+                    current_config = self.get_current_config()
+                    if self.save_config(config_name, current_config, config_desc):
+                        st.success(f"Configuration '{config_name}' saved!")
+                        st.rerun()
+                else:
+                    st.error("Please enter a configuration name")
+        
+        st.divider()
         
         # Load saved configurations
         saved_configs = self.list_configs()
         if saved_configs:
-            st.subheader("📂 Saved Configurations")
+            if compact:
+                st.write("**Saved Configurations**")
+            else:
+                st.subheader("📂 Saved Configurations")
             
             for config in saved_configs:
                 with st.container():
@@ -167,20 +177,30 @@ class ConfigPersistence:
                                 st.success(f"Configuration '{config['name']}' deleted!")
                                 st.rerun()
         
+        st.divider()
+        
         # Export/Import
-        st.subheader("📤 Export/Import Configurations")
+        if compact:
+            st.write("**Export/Import Configurations**")
+        else:
+            st.subheader("📤 Export/Import Configurations")
         
         col1, col2 = st.columns(2)
         
         with col1:
-            if st.button("📥 Export All Configurations", use_container_width=True):
+            if st.button("📥 Export All", key="export_configs_btn", use_container_width=True):
                 json_data = self.export_configs()
                 b64 = base64.b64encode(json_data.encode()).decode()
-                href = f'<a href="data:application/json;base64,{b64}" download="pca_configs_{datetime.now().strftime("%Y%m%d_%H%M%S")}.json">Download Configuration File</a>'
-                st.markdown(href, unsafe_allow_html=True)
+                st.download_button(
+                    label="⬇️ Download",
+                    data=json_data,
+                    file_name=f"pca_configs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json",
+                    mime="application/json",
+                    key="download_configs"
+                )
         
         with col2:
-            uploaded_file = st.file_uploader("Import Configuration File", type=['json'])
+            uploaded_file = st.file_uploader("Import File", type=['json'], key="import_config_file")
             if uploaded_file:
                 json_data = uploaded_file.read().decode('utf-8')
                 if self.import_configs(json_data):
