@@ -1,0 +1,115 @@
+{
+  "version": "1.0",
+  "last_updated": "2025-01-26",
+  "description": "Configuration file based on finalized Q&A specifications for template mapping",
+  
+  "validation_thresholds": {
+    "cpm_max": 50.0,
+    "cpm_min": 0.10,
+    "ctr_max": 10.0,
+    "ctr_min": 0.01,
+    "vtr_max": 80.0,
+    "vtr_min": 1.0,
+    "frequency_max": 20.0,
+    "frequency_min": 0.1,
+    "percentage_max": 100.0,
+    "percentage_min": 0.0,
+    "statistical_outlier_threshold": 3.0
+  },
+  
+  "platform_metrics": {
+    "DV360": {
+      "awareness": ["Impressions", "Budget Local", "CPM Local", "TA Size"],
+      "consideration": ["Clicks/Actions", "CTR%", "CPC Local"],
+      "purchase": ["Video Views", "VTR%", "CPV Local"]
+    },
+    "META": {
+      "awareness": ["Impressions", "Budget Local", "CPM Local", "TA Size"],
+      "consideration": ["Clicks/Actions", "CTR%", "CPC Local"],
+      "purchase": ["Video Views", "VTR%", "CPV Local"]
+    },
+    "TIKTOK": {
+      "awareness": ["Impressions", "Budget Local", "CPM Local", "TA Size"],
+      "consideration": ["Clicks/Actions", "CTR%", "CPC Local"],
+      "purchase": ["Video Views", "VTR%", "CPV Local"]
+    }
+  },
+  
+  "column_mappings": {
+    "impressions": "IMPRESSIONS",
+    "budget_local": "BUDGET_LOCAL",
+    "clicks_actions": "CLICKS_ACTIONS",
+    "video_views": "VIDEO_VIEWS",
+    "ta_size": "TA_SIZE",
+    "cpm_source": "CPM_LOCAL",
+    "cpc_source": "CPC_LOCAL",
+    "cpv_source": "CPV_LOCAL",
+    "ctr_source": "CTR_PERCENT",
+    "vtr_source": "VTR_PERCENT",
+    "frequency_source": "FREQUENCY",
+    "reach_source": "UNIQUES_REACH"
+  },
+  
+  "missing_critical_columns": [
+    "Campaign Reach (Absl)",
+    "Campaign Freq"
+  ],
+  
+  "fallback_calculations": {
+    "campaign_reach": {
+      "method": "sum_placement_reach",
+      "source_column": "UNIQUES_REACH",
+      "note": "Aggregate placement-level reach as fallback for missing Campaign Reach (Absl)"
+    },
+    "campaign_frequency": {
+      "method": "weighted_average_frequency",
+      "source_column": "FREQUENCY",
+      "weight_column": "IMPRESSIONS",
+      "note": "Calculate weighted average of placement frequencies as fallback for missing Campaign Freq"
+    }
+  },
+  
+  "calculation_preferences": {
+    "method": "python_calculations",
+    "excel_formulas": false,
+    "reason": "Python calculations provide better accuracy, stability, and error handling",
+    "insert_as": "values_only"
+  },
+  
+  "formatting_rules": {
+    "number_separators": true,
+    "percentage_symbol": true,
+    "decimal_places": {
+      "percentages": 2,
+      "currency": 2,
+      "counts": 0,
+      "rates": 2
+    },
+    "empty_data_marker": "N/A"
+  },
+  
+  "data_processing": {
+    "chunk_size": 10000,
+    "memory_optimization": true,
+    "progress_reporting_interval": 1000,
+    "large_dataset_threshold": {
+      "file_size_mb": 50,
+      "row_count": 100000
+    }
+  },
+  
+  "error_handling": {
+    "division_by_zero": "return_na",
+    "missing_data": "log_warning_continue",
+    "invalid_values": "log_error_skip",
+    "template_issues": "log_error_stop"
+  },
+  
+  "output_settings": {
+    "preserve_template_formatting": true,
+    "overwrite_existing": false,
+    "add_timestamp": true,
+    "include_metadata": true,
+    "create_backup": false
+  }
+}

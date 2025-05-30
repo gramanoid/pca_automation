@@ -1,0 +1,277 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Media Plan Automation Configuration Schema",
+  "type": "object",
+  "required": ["version", "extraction_config", "template_structure"],
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "description": "Reference to JSON schema"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Configuration version (semver format)"
+    },
+    "template_structure": {
+      "type": "object",
+      "required": ["sections", "platform_rows", "market_config"],
+      "properties": {
+        "sections": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "type"],
+            "properties": {
+              "name": {"type": "string"},
+              "type": {
+                "type": "string",
+                "enum": ["platform_metrics", "platform_tactics", "summary"]
+              },
+              "start_row": {"type": "integer", "minimum": 1},
+              "end_row": {"type": "integer", "minimum": 1},
+              "dynamic": {"type": "boolean"},
+              "metrics": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["row", "label", "field", "format"],
+                  "properties": {
+                    "row": {"type": "integer", "minimum": 1},
+                    "label": {"type": "string"},
+                    "field": {"type": "string"},
+                    "format": {
+                      "type": "string",
+                      "enum": ["number", "decimal:1", "decimal:2", "percentage", "currency"]
+                    }
+                  }
+                }
+              },
+              "columns": {
+                "type": "object",
+                "properties": {
+                  "campaign": {"type": "string", "pattern": "^[A-Z]$"},
+                  "metric_start": {"type": "string", "pattern": "^[A-Z]$"},
+                  "metric_pattern": {"type": "string"}
+                }
+              }
+            }
+          }
+        },
+        "platform_rows": {
+          "type": "object",
+          "patternProperties": {
+            "^[A-Z0-9_]+$": {
+              "type": "object",
+              "required": ["start", "end"],
+              "properties": {
+                "start": {"type": "integer", "minimum": 1},
+                "end": {"type": "integer", "minimum": 1}
+              }
+            }
+          }
+        },
+        "market_config": {
+          "type": "object",
+          "required": ["header_row", "start_column", "max_markets"],
+          "properties": {
+            "header_row": {"type": "integer", "minimum": 1},
+            "start_column": {"type": "string", "pattern": "^[A-Z]$"},
+            "max_markets": {"type": "integer", "minimum": 1, "maximum": 10},
+            "column_span": {"type": "integer", "minimum": 1},
+            "font": {
+              "type": "object",
+              "properties": {
+                "name": {"type": "string"},
+                "size": {"type": "integer", "minimum": 6, "maximum": 20},
+                "bold": {"type": "boolean"}
+              }
+            },
+            "alignment": {
+              "type": "object",
+              "properties": {
+                "horizontal": {"type": "string", "enum": ["left", "center", "right"]},
+                "vertical": {"type": "string", "enum": ["top", "center", "bottom"]}
+              }
+            }
+          }
+        }
+      }
+    },
+    "extraction_config": {
+      "type": "object",
+      "required": ["markers", "platform_aliases"],
+      "properties": {
+        "markers": {
+          "type": "object",
+          "required": ["start", "end"],
+          "properties": {
+            "start": {
+              "type": "array",
+              "items": {"type": "string"},
+              "minItems": 1
+            },
+            "end": {
+              "type": "array",
+              "items": {"type": "string"},
+              "minItems": 1
+            }
+          }
+        },
+        "platform_aliases": {
+          "type": "object",
+          "patternProperties": {
+            "^[A-Z0-9_]+$": {
+              "type": "array",
+              "items": {"type": "string"},
+              "minItems": 1
+            }
+          }
+        },
+        "country_abbreviations": {
+          "type": "object",
+          "patternProperties": {
+            "^.+$": {"type": "string", "pattern": "^[A-Z]{2,3}$"}
+          }
+        }
+      }
+    },
+    "validation_rules": {
+      "type": "object",
+      "properties": {
+        "tolerance_percentage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "required_coverage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "fail_on_mismatch": {"type": "boolean"},
+        "numeric_precision": {
+          "type": "object",
+          "properties": {
+            "currency": {"type": "integer", "minimum": 0, "maximum": 4},
+            "percentage": {"type": "integer", "minimum": 0, "maximum": 4},
+            "count": {"type": "integer", "minimum": 0}
+          }
+        }
+      }
+    },
+    "mapping_config": {
+      "type": "object",
+      "properties": {
+        "edge_case_handling": {
+          "type": "object",
+          "properties": {
+            "planned_only": {
+              "type": "object",
+              "properties": {
+                "actuals_display": {"type": "string"},
+                "include_in_output": {"type": "boolean"}
+              }
+            },
+            "delivered_only": {
+              "type": "object",
+              "properties": {
+                "planned_display": {"type": "string"},
+                "include_in_output": {"type": "boolean"}
+              }
+            },
+            "unmatched": {
+              "type": "object",
+              "properties": {
+                "display_value": {"type": "string"},
+                "log_warning": {"type": "boolean"}
+              }
+            }
+          }
+        },
+        "rf_data": {
+          "type": "object",
+          "properties": {
+            "identify_by": {"type": "string"},
+            "exclude_from": {
+              "type": "array",
+              "items": {"type": "string"}
+            },
+            "special_handling": {"type": "boolean"}
+          }
+        }
+      }
+    },
+    "insights_config": {
+      "type": "object",
+      "properties": {
+        "valid_markets": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1
+        },
+        "valid_platforms": {
+          "type": "array",
+          "items": {"type": "string"},
+          "minItems": 1
+        },
+        "exclude_from_platforms": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "calculations": {
+          "type": "object",
+          "patternProperties": {
+            "^[a-z_]+$": {"type": "string"}
+          }
+        }
+      }
+    },
+    "business_rules": {
+      "type": "object",
+      "patternProperties": {
+        "^[A-Z_]+$": {
+          "type": "string",
+          "enum": [
+            "use_planned",
+            "use_delivered",
+            "use_delivered_if_exists",
+            "use_delivered_only",
+            "use_any_available",
+            "calculate_from_delivered"
+          ]
+        }
+      }
+    },
+    "global_markers": {
+      "type": "object",
+      "properties": {
+        "START": {
+          "type": "array",
+          "items": {"type": "string"}
+        },
+        "END": {
+          "type": "array",
+          "items": {"type": "string"}
+        }
+      }
+    },
+    "sheet_specific_rules": {
+      "type": "object",
+      "patternProperties": {
+        "^.+$": {
+          "type": "object",
+          "properties": {
+            "ignore_markers_in_columns": {
+              "type": "array",
+              "items": {"type": "integer"}
+            },
+            "custom_markers": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    }
+  }
+}

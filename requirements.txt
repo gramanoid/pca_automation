@@ -1,0 +1,43 @@
+# Media Plan Automation Requirements
+# Python 3.8+ required
+
+# Core data processing
+pandas>=2.0.0
+numpy>=1.24.0
+openpyxl>=3.1.0
+
+# Configuration validation
+jsonschema>=4.17.0
+
+# Text processing
+unidecode>=1.3.0
+
+# API and Web Interface
+flask>=2.3.0
+flask-cors>=4.0.0
+
+# LLM Integration (optional)
+anthropic>=0.7.0
+python-dotenv>=1.0.0
+
+# Progress and monitoring
+tqdm>=4.65.0
+psutil>=5.9.0
+schedule>=1.2.0
+
+# Data visualization
+matplotlib>=3.7.0
+seaborn>=0.12.0
+
+# Performance optimization
+memory-profiler>=0.60.0
+retrying>=1.3.4
+
+# Optional: For Streamlit UI (not required for core functionality)
+# streamlit>=1.45.0
+
+# Development dependencies (optional)
+# pytest>=8.3.0
+# black>=23.0.0
+# flake8>=6.0.0
+# mypy>=1.0.0

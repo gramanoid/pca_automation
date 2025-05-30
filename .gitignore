@@ -1,0 +1,110 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+*.cover
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.pydevproject
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Project specific
+logs/*.log
+production_workflow/*/logs/*.log
+output/*.xlsx
+output/*.txt
+output/*/
+!output/README_SUCCESS.md
+_archive/
+*.backup_*
+deployment/*.zip
+test_fixtures/*.xlsx
+!test_fixtures/*TEST_FIXTURE.xlsx
+
+# Sensitive data
+.env
+*.key
+*_credentials.json
+
+# Claude specific
+.claude/
+
+# Temporary files
+*.tmp
+*.temp
+~$*.xlsx
+~$*.docx
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+.history/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Keep important files
+!input/*.xlsx
+!documentation/
+!config/
+!production_workflow/
+!tests/
+!tools/

@@ -1,0 +1,135 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "version": "2.0.0",
+  "template_structure": {
+    "sections": [
+      {
+        "name": "Campaign Level",
+        "type": "platform_metrics",
+        "start_row": 16,
+        "end_row": 23,
+        "metrics": [
+          {"row": 16, "label": "Reach", "field": "REACH", "format": "number"},
+          {"row": 17, "label": "Frequency", "field": "FREQUENCY", "format": "decimal:1"},
+          {"row": 18, "label": "BLS Metric", "field": "BLS_METRIC", "format": "percentage"},
+          {"row": 19, "label": "Ad Recall", "field": "AD_RECALL", "format": "percentage"},
+          {"row": 20, "label": "Awareness", "field": "AWARENESS", "format": "percentage"},
+          {"row": 21, "label": "Consideration", "field": "CONSIDERATION", "format": "percentage"},
+          {"row": 22, "label": "Online Action Intent", "field": "ONLINE_ACTION_INTENT", "format": "percentage"},
+          {"row": 23, "label": "Offline Action Intent", "field": "OFFLINE_ACTION_INTENT", "format": "percentage"}
+        ]
+      },
+      {
+        "name": "Tactic Performance",
+        "type": "platform_tactics",
+        "start_row": 28,
+        "dynamic": true,
+        "columns": {
+          "campaign": "A",
+          "metric_start": "E",
+          "metric_pattern": "{market}_planned,{market}_actuals"
+        }
+      }
+    ],
+    "platform_rows": {
+      "DV360": {"start": 15, "end": 51},
+      "META": {"start": 52, "end": 91},
+      "TIKTOK": {"start": 92, "end": 122}
+    },
+    "market_config": {
+      "header_row": 15,
+      "start_column": "E",
+      "max_markets": 7,
+      "column_span": 2,
+      "font": {"name": "Roboto", "size": 9, "bold": true},
+      "alignment": {"horizontal": "center", "vertical": "center"}
+    }
+  },
+  "extraction_config": {
+    "markers": {
+      "start": ["START", "start", "Start"],
+      "end": ["END", "end", "End"]
+    },
+    "platform_aliases": {
+      "DV360": ["YOUTUBE", "YouTube", "Display & Video 360", "DV360"],
+      "META": ["Facebook", "Instagram", "Meta", "META"],
+      "TIKTOK": ["TikTok", "Tiktok", "tiktok", "TIKTOK"]
+    },
+    "country_abbreviations": {
+      "Oman": "OMN",
+      "OMAN": "OMN",
+      "Jordan": "JOR",
+      "JORDAN": "JOR",
+      "Kuwait": "KWT",
+      "KUWAIT": "KWT",
+      "Qatar": "QAT",
+      "QATAR": "QAT",
+      "Lebanon": "LEB",
+      "LEBANON": "LEB",
+      "Bahrain": "BAH",
+      "BAHRAIN": "BAH",
+      "UAE": "UAE",
+      "United Arab Emirates": "UAE",
+      "Saudi Arabia": "KSA",
+      "SAUDI ARABIA": "KSA",
+      "KSA": "KSA",
+      "Turkey": "TRY",
+      "TURKEY": "TRY",
+      "Egypt": "EGY",
+      "EGYPT": "EGY",
+      "Morocco": "MOR",
+      "MOROCCO": "MOR",
+      "French South Africa": "FSA",
+      "FRENCH SOUTH AFRICA": "FSA",
+      "South Africa": "RSA",
+      "SOUTH AFRICA": "RSA",
+      "Kenya": "KEN",
+      "KENYA": "KEN",
+      "Nigeria": "NGR",
+      "NIGERIA": "NGR",
+      "Pakistan": "PAK",
+      "PAKISTAN": "PAK"
+    }
+  },
+  "validation_rules": {
+    "tolerance_percentage": 0.1,
+    "required_coverage": 100,
+    "fail_on_mismatch": true,
+    "numeric_precision": {
+      "currency": 2,
+      "percentage": 1,
+      "count": 0
+    }
+  },
+  "mapping_config": {
+    "edge_case_handling": {
+      "planned_only": {
+        "actuals_display": "—",
+        "include_in_output": true
+      },
+      "delivered_only": {
+        "planned_display": "—",
+        "include_in_output": true
+      },
+      "unmatched": {
+        "display_value": "—",
+        "log_warning": true
+      }
+    },
+    "rf_data": {
+      "identify_by": "Source_Sheet contains '_RF'",
+      "exclude_from": ["platform_metrics", "budget_calculations"],
+      "special_handling": true
+    }
+  },
+  "insights_config": {
+    "valid_markets": ["UAE", "KWT", "OMN", "QAT", "BAH", "JOR", "LEB", "KSA", "TRY", "EGY", "MOR", "FSA", "RSA", "KEN", "NGR", "PAK"],
+    "valid_platforms": ["DV360", "META", "TIKTOK"],
+    "exclude_from_platforms": ["_RF"],
+    "calculations": {
+      "ctr": "clicks / impressions * 100",
+      "cpm": "spend / impressions * 1000",
+      "cpc": "spend / clicks"
+    }
+  }
+}

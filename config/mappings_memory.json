@@ -1,0 +1,211 @@
+{
+  "mappings": {
+    "BUDGET_LOCAL": {
+      "target": "Budget",
+      "confidence": 1.0,
+      "count": 50,
+      "first_seen": "2025-05-28T00:00:00",
+      "last_updated": "2025-05-28T00:00:00"
+    },
+    "IMPRESSIONS": {
+      "target": "Impressions",
+      "confidence": 1.0,
+      "count": 50,
+      "first_seen": "2025-05-28T00:00:00",
+      "last_updated": "2025-05-28T00:00:00"
+    },
+    "CLICKS_ACTIONS": {
+      "target": "Clicks",
+      "confidence": 0.95,
+      "count": 35,
+      "first_seen": "2025-05-28T00:00:00",
+      "last_updated": "2025-05-28T00:00:00"
+    },
+    "VIDEO_VIEWS": {
+      "target": "Views",
+      "confidence": 0.98,
+      "count": 40,
+      "first_seen": "2025-05-28T00:00:00",
+      "last_updated": "2025-05-28T00:00:00"
+    },
+    "UNIQUES_REACH": {
+      "target": "Reach abs",
+      "confidence": 0.96,
+      "count": 45,
+      "first_seen": "2025-05-28T00:00:00",
+      "last_updated": "2025-05-28T00:00:00"
+    },
+    "VTR": {
+      "target": "VTR%",
+      "confidence": 0.97,
+      "count": 30,
+      "first_seen": "2025-05-28T00:00:00",
+      "last_updated": "2025-05-28T00:00:00"
+    },
+    "CTR": {
+      "target": "CTR%",
+      "confidence": 0.97,
+      "count": 32,
+      "first_seen": "2025-05-28T00:00:00",
+      "last_updated": "2025-05-28T00:00:00"
+    },
+    "CPM": {
+      "target": "CPM",
+      "confidence": 1.0,
+      "count": 48,
+      "first_seen": "2025-05-28T00:00:00",
+      "last_updated": "2025-05-28T00:00:00"
+    },
+    "CPC": {
+      "target": "CPC",
+      "confidence": 1.0,
+      "count": 25,
+      "first_seen": "2025-05-28T00:00:00",
+      "last_updated": "2025-05-28T00:00:00"
+    },
+    "CPV": {
+      "target": "CPV",
+      "confidence": 1.0,
+      "count": 28,
+      "first_seen": "2025-05-28T00:00:00",
+      "last_updated": "2025-05-28T00:00:00"
+    },
+    "FREQUENCY": {
+      "target": "Frequency",
+      "confidence": 0.98,
+      "count": 42,
+      "first_seen": "2025-05-28T00:00:00",
+      "last_updated": "2025-05-28T00:00:00"
+    },
+    "SPEND_USD": {
+      "target": "Budget",
+      "confidence": 0.95,
+      "count": 1,
+      "first_seen": "2025-05-28T11:33:42.615852",
+      "last_updated": "2025-05-28T11:33:42.615861"
+    },
+    "IMPS": {
+      "target": "Impressions",
+      "confidence": 0.95,
+      "count": 1,
+      "first_seen": "2025-05-28T11:33:42.628585",
+      "last_updated": "2025-05-28T11:33:42.628595"
+    },
+    "CLICKS": {
+      "target": "Clicks",
+      "confidence": 0.95,
+      "count": 1,
+      "first_seen": "2025-05-28T11:33:42.638366",
+      "last_updated": "2025-05-28T11:33:42.638375"
+    },
+    "Cost_Local_Currency": {
+      "target": "Budget",
+      "confidence": 0.95,
+      "count": 1,
+      "first_seen": "2025-05-28T11:33:46.413684",
+      "last_updated": "2025-05-28T11:33:46.413692"
+    },
+    "Total_Impressions": {
+      "target": "Impressions",
+      "confidence": 0.98,
+      "count": 1,
+      "first_seen": "2025-05-28T11:33:46.420018",
+      "last_updated": "2025-05-28T11:33:46.420026"
+    },
+    "Click_Actions": {
+      "target": "Clicks",
+      "confidence": 0.95,
+      "count": 1,
+      "first_seen": "2025-05-28T11:33:46.425125",
+      "last_updated": "2025-05-28T11:33:46.425135"
+    },
+    "BUDGET LOCAL": {
+      "target": "Budget",
+      "confidence": 0.95,
+      "count": 1,
+      "first_seen": "2025-05-28T11:33:50.085231",
+      "last_updated": "2025-05-28T11:33:50.085241"
+    },
+    "IMPRESSIONS DELIVERED": {
+      "target": "Impressions",
+      "confidence": 0.95,
+      "count": 1,
+      "first_seen": "2025-05-28T11:33:50.102614",
+      "last_updated": "2025-05-28T11:33:50.102628"
+    },
+    "CTR_%": {
+      "target": "CTR%",
+      "confidence": 0.98,
+      "count": 1,
+      "first_seen": "2025-05-28T11:33:50.119432",
+      "last_updated": "2025-05-28T11:33:50.119444"
+    },
+    "PLATFORM_BUDGET_LOCAL": {
+      "target": "Budget",
+      "confidence": 0.95,
+      "count": 1,
+      "first_seen": "2025-05-28T11:34:06.739902",
+      "last_updated": "2025-05-28T11:34:06.739911"
+    },
+    "CTR_PERCENT": {
+      "target": "CTR%",
+      "confidence": 0.98,
+      "count": 1,
+      "first_seen": "2025-05-28T11:34:06.745841",
+      "last_updated": "2025-05-28T11:34:06.745848"
+    },
+    "VTR_PERCENT": {
+      "target": "VTR%",
+      "confidence": 0.98,
+      "count": 1,
+      "first_seen": "2025-05-28T11:34:06.750480",
+      "last_updated": "2025-05-28T11:34:06.750487"
+    },
+    "CPM_LOCAL": {
+      "target": "CPM",
+      "confidence": 0.98,
+      "count": 1,
+      "first_seen": "2025-05-28T11:34:06.754054",
+      "last_updated": "2025-05-28T11:34:06.754060"
+    },
+    "CPC_LOCAL": {
+      "target": "CPC",
+      "confidence": 0.98,
+      "count": 1,
+      "first_seen": "2025-05-28T11:34:06.756762",
+      "last_updated": "2025-05-28T11:34:06.756767"
+    },
+    "CPV_LOCAL": {
+      "target": "CPV",
+      "confidence": 0.98,
+      "count": 1,
+      "first_seen": "2025-05-28T11:34:06.758636",
+      "last_updated": "2025-05-28T11:34:06.758642"
+    },
+    "PERCENT_UNIQUES": {
+      "target": "Reach%",
+      "confidence": 0.95,
+      "count": 1,
+      "first_seen": "2025-05-28T11:34:06.761165",
+      "last_updated": "2025-05-28T11:34:06.761178"
+    },
+    "NEW_TEST_COLUMN": {
+      "target": "TestTarget",
+      "confidence": 0.95,
+      "count": 1,
+      "first_seen": "2025-05-28T11:34:07.165558",
+      "last_updated": "2025-05-28T11:34:07.165569"
+    },
+    "TOTAL_SPEND\u2192Budget": "Budget",
+    "IMP_COUNT\u2192Impressions": "Impressions",
+    "CLICK_RATE\u2192CTR%": "CTR%"
+  },
+  "examples": {
+    "SPEND_USD": "Budget",
+    "IMPS": "Impressions",
+    "CLICKS": "Clicks",
+    "United Arab Emirates": "UAE",
+    "Quatar": "Qatar"
+  },
+  "client_preferences": {}
+}

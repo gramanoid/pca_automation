@@ -1,0 +1,78 @@
+{
+  "version": "1.0",
+  "description": "Client-specific mapping rules for custom column mappings",
+  
+  "clients": {
+    "default": {
+      "description": "Default mappings for all clients",
+      "column_overrides": {},
+      "value_transformations": {}
+    },
+    
+    "sensodyne": {
+      "description": "Custom mappings for Sensodyne campaigns",
+      "column_overrides": {
+        "SPEND_USD": "Budget",
+        "SPEND_LOCAL": "Budget",
+        "IMPS": "Impressions",
+        "CLICKS": "Clicks"
+      },
+      "value_transformations": {
+        "MARKET": {
+          "Quatar": "Qatar",
+          "UAE": "UAE",
+          "KSA": "Saudi Arabia"
+        },
+        "CAMPAIGN": {
+          "Sensodyne Clinical White": "You Did It",
+          "Sensodyne Clinical": "You Did It"
+        }
+      }
+    },
+    
+    "client_example": {
+      "description": "Example client with specific requirements",
+      "column_overrides": {
+        "TOTAL_BUDGET": "Budget",
+        "TOTAL_IMPRESSIONS": "Impressions",
+        "TOTAL_CLICKS": "Clicks"
+      },
+      "value_transformations": {
+        "PLATFORM": {
+          "Facebook": "META",
+          "Instagram": "META",
+          "YouTube": "DV360",
+          "TikTok": "TIKTOK"
+        }
+      },
+      "custom_metrics": {
+        "engagement_rate": {
+          "formula": "(CLICKS + VIDEO_VIEWS) / IMPRESSIONS * 100",
+          "target_column": "Engagement%"
+        }
+      }
+    }
+  },
+  
+  "global_rules": {
+    "typo_corrections": {
+      "Quatar": "Qatar",
+      "Saudia Arabia": "Saudi Arabia",
+      "United Arab Emirate": "UAE"
+    },
+    
+    "abbreviation_expansions": {
+      "IMPS": "IMPRESSIONS",
+      "CLKS": "CLICKS",
+      "CONV": "CONVERSIONS"
+    },
+    
+    "platform_standardization": {
+      "FB": "META",
+      "IG": "META", 
+      "YT": "DV360",
+      "YOUTUBE": "DV360",
+      "TIKTOK": "TikTok"
+    }
+  }
+}
