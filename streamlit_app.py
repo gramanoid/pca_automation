@@ -31,7 +31,12 @@ from ui_components import (
     ProgressDisplay,
     ValidationDashboard,
     ConfigSidebar,
-    MarkerValidationComponent
+    MarkerValidationComponent,
+    ConfigPersistence,
+    ReportExporter,
+    PerformanceMonitor,
+    EnhancedDashboard,
+    SmartSuggestions
 )
 
 # Import centralized styles
@@ -87,6 +92,11 @@ progress_display = ProgressDisplay(STAGES)
 validation_dashboard = ValidationDashboard()
 config_sidebar = ConfigSidebar(project_root)
 marker_validator = MarkerValidationComponent()
+config_persistence = ConfigPersistence()
+report_exporter = ReportExporter()
+performance_monitor = PerformanceMonitor()
+enhanced_dashboard = EnhancedDashboard()
+smart_suggestions = SmartSuggestions()
 
 # Utility functions
 def cleanup_temp_files():
@@ -158,6 +168,10 @@ with st.sidebar:
     # Configuration section
     config_sidebar.render_configuration_section()
     
+    # Configuration persistence
+    with st.expander("💾 Save/Load Configurations", expanded=False):
+        config_persistence.render_persistence_ui()
+    
     # Info section
     config_sidebar.render_info_section()
 
@@ -185,6 +199,12 @@ if st.session_state.current_stage == 1:
     
     # Check upload status
     all_uploaded, all_valid = file_upload_component.render_upload_summary(upload_results)
+    
+    # Check file sizes
+    if all_uploaded:
+        for file_type, result in upload_results.items():
+            if result['file_path']:
+                performance_monitor.check_file_size(str(result['file_path']), file_type)
     
     if all_uploaded and all_valid:
         st.markdown("---")
@@ -233,6 +253,9 @@ elif st.session_state.current_stage == 2:
     @handle_errors
     def process_data():
         """Process data with error handling"""
+        # Start performance tracking
+        performance_monitor.start_stage('Data Processing')
+        
         # Create progress placeholders
         progress_bar = st.progress(0)
         status_text = st.empty()
@@ -267,6 +290,9 @@ elif st.session_state.current_stage == 2:
         st.session_state.workflow_data['combined_file'] = combined_output
         st.session_state.workflow_data['output_dir'] = str(output_dir)
         st.session_state.workflow_data['output_files'] = output_files
+        
+        # End performance tracking
+        performance_monitor.end_stage('Data Processing')
         
         return output_files, combined_output
     
@@ -502,6 +528,18 @@ elif st.session_state.current_stage == 4:
                 
                 # Render the validation dashboard
                 validation_dashboard.render_validation_dashboard(validation_results)
+                
+                # Smart suggestions
+                st.markdown("---")
+                smart_suggestions.render_suggestions(validation_results)
+                
+                # Enhanced dashboard
+                st.markdown("---")
+                enhanced_dashboard.render_enhanced_dashboard(validation_results, st.session_state.workflow_data)
+                
+                # Report export
+                st.markdown("---")
+                report_exporter.render_export_ui(validation_results, st.session_state.workflow_data)
     
     if progress_display.can_proceed_to_next_stage(4):
         # Check if we should allow proceeding based on validation results
@@ -554,6 +592,10 @@ elif st.session_state.current_stage == 5:
     # Quick validation stats
     st.markdown("---")
     validation_dashboard.render_quick_stats(validation_results)
+    
+    # Performance metrics
+    st.markdown("---")
+    performance_monitor.render_performance_dashboard()
     
     st.divider()
     

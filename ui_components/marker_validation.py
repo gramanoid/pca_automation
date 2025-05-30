@@ -13,6 +13,8 @@ import re
 from typing import Dict, List, Tuple, Optional
 import os
 import numpy as np
+from .marker_preview import MarkerPreviewComponent
+from .history_manager import HistoryManager
 
 class MarkerValidationComponent:
     """Component for validating and placing START/END markers in Excel files"""
@@ -29,6 +31,10 @@ class MarkerValidationComponent:
                 'tables_per_sheet': 2  # R&F table and Media table
             }
         }
+        
+        # Initialize helper components
+        self.preview_component = MarkerPreviewComponent()
+        self.history_manager = HistoryManager()
     
     def validate_cell_reference(self, cell_ref: str) -> bool:
         """Validate if a string is a valid Excel cell reference"""
@@ -106,6 +112,11 @@ class MarkerValidationComponent:
         except Exception as e:
             st.warning(f"Auto-detection failed: {str(e)}")
             return None
+    
+    def _validate_cell_input(self, sheet_name: str, table_num: int, cell_type: str, file_path: str):
+        """Callback for real-time cell validation"""
+        # This is called on_change, validation happens in the main UI
+        pass
     
     def scan_for_markers(self, file_path: str, file_type: str) -> Dict[str, Dict[str, bool]]:
         """
@@ -258,6 +269,9 @@ class MarkerValidationComponent:
         if 'marker_boundaries' not in st.session_state:
             st.session_state.marker_boundaries = {}
         
+        # Show history controls
+        self.history_manager.render_history_controls()
+        
         # Collect boundary information for each sheet and table
         all_valid = True
         boundaries = {}
@@ -300,16 +314,40 @@ class MarkerValidationComponent:
                             "Top-Left Cell (e.g., A5):",
                             key=f"{sheet_name}_table{table_num}_top_left",
                             value=st.session_state.get(f"{sheet_name}_table{table_num}_top_left", ""),
-                            help="First cell of your header row"
+                            help="First cell of your header row",
+                            on_change=lambda: self._validate_cell_input(sheet_name, table_num, 'top_left', file_path)
                         ).upper()
+                        
+                        # Real-time validation for top-left
+                        if top_left:
+                            validation = self.preview_component.validate_cell_content(file_path, sheet_name, top_left)
+                            if validation['valid']:
+                                if validation.get('warning'):
+                                    st.warning(validation['message'])
+                                else:
+                                    st.success(validation['message'])
+                            else:
+                                st.error(validation['message'])
                     
                     with col2:
                         bottom_right = st.text_input(
                             "Bottom-Right Cell (e.g., G50):",
                             key=f"{sheet_name}_table{table_num}_bottom_right",
                             value=st.session_state.get(f"{sheet_name}_table{table_num}_bottom_right", ""),
-                            help="Last cell of your last data row"
+                            help="Last cell of your last data row",
+                            on_change=lambda: self._validate_cell_input(sheet_name, table_num, 'bottom_right', file_path)
                         ).upper()
+                        
+                        # Real-time validation for bottom-right
+                        if bottom_right:
+                            validation = self.preview_component.validate_cell_content(file_path, sheet_name, bottom_right)
+                            if validation['valid']:
+                                if validation.get('warning'):
+                                    st.warning(validation['message'])
+                                else:
+                                    st.success(validation['message'])
+                            else:
+                                st.error(validation['message'])
                     
                     # Validate inputs
                     if top_left and bottom_right:
@@ -335,6 +373,22 @@ class MarkerValidationComponent:
                                         'top_left': top_left,
                                         'bottom_right': bottom_right
                                     })
+                                    
+                                    # Show preview
+                                    with st.expander("📊 Preview marker placement", expanded=True):
+                                        preview_text = self.preview_component.create_simple_preview(top_left, bottom_right)
+                                        st.markdown(preview_text)
+                                        
+                                        # Try to show visual grid if possible
+                                        try:
+                                            df_sheet = pd.read_excel(file_path, sheet_name=sheet_name, header=None)
+                                            boundaries_dict = {f"Table {table_num}": (top_left, bottom_right)}
+                                            fig = self.preview_component.create_grid_visualization(
+                                                df_sheet, boundaries_dict, show_markers=True
+                                            )
+                                            st.plotly_chart(fig, use_container_width=True)
+                                        except Exception as e:
+                                            st.info("Visual preview not available")
                             except Exception as e:
                                 st.error(f"Error validating cell references: {str(e)}")
                                 all_valid = False
@@ -349,6 +403,16 @@ class MarkerValidationComponent:
             
             if sheet_boundaries:
                 boundaries[sheet_name] = sheet_boundaries
+                
+                # Save state to history
+                current_state = {}
+                for boundary in sheet_boundaries:
+                    key_tl = f"{sheet_name}_table{boundary['table_num']}_top_left"
+                    key_br = f"{sheet_name}_table{boundary['table_num']}_bottom_right"
+                    current_state[key_tl] = boundary['top_left']
+                    current_state[key_br] = boundary['bottom_right']
+                
+                self.history_manager.add_state(current_state, f"Defined boundaries for {sheet_name}")
         
         # Show process button only if all inputs are valid
         if all_valid and boundaries:
