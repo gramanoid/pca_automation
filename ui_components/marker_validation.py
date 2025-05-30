@@ -68,15 +68,15 @@ class MarkerValidationComponent:
                     }
                     
                     # Scan for START and END markers
-                    for row in sheet.iter_rows(values_only=True):
-                        for col_idx, cell_value in enumerate(row):
-                            if cell_value and isinstance(cell_value, str):
-                                if 'START' in str(cell_value).upper():
+                    for row_idx, row in enumerate(sheet.iter_rows(values_only=False), start=1):
+                        for col_idx, cell in enumerate(row, start=1):
+                            if cell.value and isinstance(cell.value, str):
+                                if 'START' in str(cell.value).upper():
                                     sheet_results['has_start'] = True
-                                    sheet_results['start_locations'].append((sheet.cell(row=row[0].row if hasattr(row[0], 'row') else 1, column=col_idx+1).coordinate))
-                                elif 'END' in str(cell_value).upper():
+                                    sheet_results['start_locations'].append(cell.coordinate)
+                                elif 'END' in str(cell.value).upper():
                                     sheet_results['has_end'] = True
-                                    sheet_results['end_locations'].append((sheet.cell(row=row[0].row if hasattr(row[0], 'row') else 1, column=col_idx+1).coordinate))
+                                    sheet_results['end_locations'].append(cell.coordinate)
                     
                     # Determine if markers are valid
                     expected_tables = self.file_requirements[file_type]['tables_per_sheet']
