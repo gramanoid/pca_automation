@@ -221,6 +221,9 @@ def get_stage_icon(stage_num: int) -> str:
 
 def update_stage_status(stage_num: int, status: str):
     """Update the status of a stage"""
+    # Don't overwrite 'completed' status with 'current'
+    if st.session_state.stage_status.get(stage_num) == 'completed' and status == 'current':
+        return
     st.session_state.stage_status[stage_num] = status
 
 # Cached processing functions
@@ -324,7 +327,8 @@ with st.sidebar:
 # Main content area
 if st.session_state.current_stage == 1:
     # Stage 1: Data Upload
-    update_stage_status(1, 'current')
+    if st.session_state.stage_status.get(1) != 'completed':
+        update_stage_status(1, 'current')
     st.markdown('<h2 class="stage-header">📁 Stage 1: Data Upload</h2>', unsafe_allow_html=True)
     
     st.markdown("""
@@ -429,7 +433,8 @@ if st.session_state.current_stage == 1:
 
 elif st.session_state.current_stage == 2:
     # Stage 2: Data Processing
-    update_stage_status(2, 'current')
+    if st.session_state.stage_status.get(2) != 'completed':
+        update_stage_status(2, 'current')
     st.markdown('<h2 class="stage-header">⚙️ Stage 2: Data Processing</h2>', unsafe_allow_html=True)
     
     st.info("This stage extracts data from your uploaded files and combines them for template mapping.")
@@ -510,7 +515,8 @@ elif st.session_state.current_stage == 2:
 
 elif st.session_state.current_stage == 3:
     # Stage 3: Template Mapping
-    update_stage_status(3, 'current')
+    if st.session_state.stage_status.get(3) != 'completed':
+        update_stage_status(3, 'current')
     st.markdown('<h2 class="stage-header">🔄 Stage 3: Template Mapping</h2>', unsafe_allow_html=True)
     
     st.info("This stage maps your combined data to the output template using intelligent column matching.")
@@ -589,7 +595,8 @@ elif st.session_state.current_stage == 3:
 
 elif st.session_state.current_stage == 4:
     # Stage 4: Validation
-    update_stage_status(4, 'current')
+    if st.session_state.stage_status.get(4) != 'completed':
+        update_stage_status(4, 'current')
     st.markdown('<h2 class="stage-header">✅ Stage 4: Validation</h2>', unsafe_allow_html=True)
     
     st.info("This stage validates the accuracy and completeness of your mapped data.")
@@ -682,7 +689,8 @@ elif st.session_state.current_stage == 4:
 
 elif st.session_state.current_stage == 5:
     # Stage 5: Results & Download
-    update_stage_status(5, 'current')
+    if st.session_state.stage_status.get(5) != 'completed':
+        update_stage_status(5, 'current')
     st.markdown('<h2 class="stage-header">📊 Stage 5: Results & Download</h2>', unsafe_allow_html=True)
     
     st.success("🎉 Workflow completed successfully!")
