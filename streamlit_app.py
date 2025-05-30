@@ -168,12 +168,21 @@ def validate_uploaded_file(file, file_type: str) -> Tuple[bool, str, Optional[pd
             return True, f"✅ Valid DELIVERED file with {len(platform_sheets)} platform sheets", df_first_sheet
             
         elif file_type == "TEMPLATE":
-            # Check if it's a valid Excel template
-            if len(df_first_sheet.columns) < 10:
-                return False, "❌ Template appears to have insufficient columns", None
+            # For templates, we need to check the actual structure
+            # The template might have empty rows at the top, so check multiple areas
+            try:
+                # Check if we can read the expected data area (around row 15 where DV360 starts)
+                xl_file = pd.ExcelFile(file)
+                sheet_names = xl_file.sheet_names
                 
-            file.seek(0)
-            return True, "✅ Valid OUTPUT TEMPLATE file", df_first_sheet
+                # Basic validation - just check if it's a valid Excel file with at least one sheet
+                if len(sheet_names) == 0:
+                    return False, "❌ No sheets found in template", None
+                
+                file.seek(0)
+                return True, f"✅ Valid OUTPUT TEMPLATE file with {len(sheet_names)} sheet(s)", df_first_sheet
+            except Exception as e:
+                return False, f"❌ Error validating template: {str(e)}", None
             
         else:
             file.seek(0)
