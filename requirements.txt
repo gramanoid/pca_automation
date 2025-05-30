@@ -28,6 +28,7 @@ schedule>=1.2.0
 # Data visualization
 matplotlib>=3.7.0
 seaborn>=0.12.0
+plotly>=5.17.0
 
 # Performance optimization
 memory-profiler>=0.60.0

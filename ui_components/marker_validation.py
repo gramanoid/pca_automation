@@ -1,0 +1,415 @@
+"""
+START/END Marker Validation Component
+Critical component for ensuring data extraction boundaries are properly defined
+"""
+
+import streamlit as st
+import pandas as pd
+import openpyxl
+from openpyxl.utils import coordinate_to_tuple, get_column_letter
+from pathlib import Path
+import tempfile
+import re
+from typing import Dict, List, Tuple, Optional
+import os
+
+class MarkerValidationComponent:
+    """Component for validating and placing START/END markers in Excel files"""
+    
+    def __init__(self):
+        # Expected sheets and table counts for different file types
+        self.file_requirements = {
+            'PLANNED': {
+                'sheets': ['DV360', 'META', 'TIKTOK'],
+                'tables_per_sheet': 1
+            },
+            'DELIVERED': {
+                'sheet_patterns': ['DV360', 'META', 'TIKTOK'],  # Patterns to look for in sheet names
+                'tables_per_sheet': 2  # R&F table and Media table
+            }
+        }
+    
+    def validate_cell_reference(self, cell_ref: str) -> bool:
+        """Validate if a string is a valid Excel cell reference"""
+        pattern = r'^[A-Z]+[0-9]+$'
+        return bool(re.match(pattern, cell_ref.upper()))
+    
+    def scan_for_markers(self, file_path: str, file_type: str) -> Dict[str, Dict[str, bool]]:
+        """
+        Scan Excel file for START/END markers
+        Returns: Dict with sheet names as keys and marker status as values
+        """
+        results = {}
+        
+        try:
+            wb = openpyxl.load_workbook(file_path, read_only=True)
+            
+            # Determine which sheets to check based on file type
+            if file_type == 'PLANNED':
+                sheets_to_check = self.file_requirements['PLANNED']['sheets']
+            else:  # DELIVERED
+                # Find sheets that match the patterns
+                sheets_to_check = []
+                for sheet_name in wb.sheetnames:
+                    for pattern in self.file_requirements['DELIVERED']['sheet_patterns']:
+                        if pattern.upper() in sheet_name.upper():
+                            sheets_to_check.append(sheet_name)
+                            break
+            
+            # Check each sheet for markers
+            for sheet_name in sheets_to_check:
+                if sheet_name in wb.sheetnames:
+                    sheet = wb[sheet_name]
+                    sheet_results = {
+                        'has_start': False,
+                        'has_end': False,
+                        'start_locations': [],
+                        'end_locations': []
+                    }
+                    
+                    # Scan for START and END markers
+                    for row in sheet.iter_rows(values_only=True):
+                        for col_idx, cell_value in enumerate(row):
+                            if cell_value and isinstance(cell_value, str):
+                                if 'START' in str(cell_value).upper():
+                                    sheet_results['has_start'] = True
+                                    sheet_results['start_locations'].append((sheet.cell(row=row[0].row if hasattr(row[0], 'row') else 1, column=col_idx+1).coordinate))
+                                elif 'END' in str(cell_value).upper():
+                                    sheet_results['has_end'] = True
+                                    sheet_results['end_locations'].append((sheet.cell(row=row[0].row if hasattr(row[0], 'row') else 1, column=col_idx+1).coordinate))
+                    
+                    # Determine if markers are valid
+                    expected_tables = self.file_requirements[file_type]['tables_per_sheet']
+                    sheet_results['valid'] = (
+                        len(sheet_results['start_locations']) == expected_tables and
+                        len(sheet_results['end_locations']) == expected_tables
+                    )
+                    
+                    results[sheet_name] = sheet_results
+                else:
+                    results[sheet_name] = {
+                        'error': f'Sheet {sheet_name} not found in file'
+                    }
+            
+            wb.close()
+            return results
+            
+        except Exception as e:
+            return {'error': str(e)}
+    
+    def display_marker_validation_ui(self, file_path: str, file_type: str) -> Optional[Dict[str, List[Dict]]]:
+        """
+        Display UI for user-guided marker placement
+        Returns: Dict with sheet names as keys and list of table boundaries as values
+        """
+        st.markdown('<div class="warning-message">⚠️ Action Required: START/END markers are missing or misplaced. Let\'s define your data tables so we can add them for you.</div>', unsafe_allow_html=True)
+        
+        # Show visual guide
+        with st.expander("📖 Visual Guide - Understanding Table Boundaries", expanded=True):
+            st.markdown("""
+            <div class="info-box">
+            <h4>How to identify your data table boundaries:</h4>
+            <ul>
+                <li><b>Top-Left Cell:</b> The first cell of your header row (usually contains column names)</li>
+                <li><b>Bottom-Right Cell:</b> The last cell of your last data row</li>
+            </ul>
+            <p><b>Example:</b> If your data starts at A5 (header) and ends at G50, then:</p>
+            <ul>
+                <li>Top-Left Cell = A5</li>
+                <li>Bottom-Right Cell = G50</li>
+            </ul>
+            <p><b>Note:</b> START marker will be placed one row above your top-left cell, END marker one row below your bottom row.</p>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Get sheet information
+        try:
+            wb = openpyxl.load_workbook(file_path, read_only=True)
+            sheet_names = wb.sheetnames
+            wb.close()
+        except Exception as e:
+            st.error(f"Error reading file: {str(e)}")
+            return None
+        
+        # Determine required sheets based on file type
+        if file_type == 'PLANNED':
+            required_sheets = self.file_requirements['PLANNED']['sheets']
+            tables_per_sheet = self.file_requirements['PLANNED']['tables_per_sheet']
+        else:  # DELIVERED
+            # Find sheets matching patterns
+            required_sheets = []
+            for sheet_name in sheet_names:
+                for pattern in self.file_requirements['DELIVERED']['sheet_patterns']:
+                    if pattern.upper() in sheet_name.upper():
+                        required_sheets.append(sheet_name)
+                        break
+            tables_per_sheet = self.file_requirements['DELIVERED']['tables_per_sheet']
+        
+        # Initialize session state for boundaries if not exists
+        if 'marker_boundaries' not in st.session_state:
+            st.session_state.marker_boundaries = {}
+        
+        # Collect boundary information for each sheet and table
+        all_valid = True
+        boundaries = {}
+        
+        for sheet_name in required_sheets:
+            if sheet_name not in sheet_names:
+                st.error(f"Required sheet '{sheet_name}' not found in file!")
+                all_valid = False
+                continue
+            
+            st.markdown(f"### 📋 Sheet: {sheet_name}")
+            
+            sheet_boundaries = []
+            
+            for table_num in range(1, tables_per_sheet + 1):
+                with st.container():
+                    st.markdown(f'<div class="marker-input-container">', unsafe_allow_html=True)
+                    
+                    if tables_per_sheet > 1:
+                        st.markdown(f"#### Table {table_num}")
+                        if file_type == 'DELIVERED':
+                            table_hint = "R&F Data Table" if table_num == 1 else "Media Data Table"
+                            st.caption(f"({table_hint})")
+                    
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        top_left = st.text_input(
+                            "Top-Left Cell (e.g., A5):",
+                            key=f"{sheet_name}_table{table_num}_top_left",
+                            help="First cell of your header row"
+                        ).upper()
+                    
+                    with col2:
+                        bottom_right = st.text_input(
+                            "Bottom-Right Cell (e.g., G50):",
+                            key=f"{sheet_name}_table{table_num}_bottom_right",
+                            help="Last cell of your last data row"
+                        ).upper()
+                    
+                    # Validate inputs
+                    if top_left and bottom_right:
+                        if not self.validate_cell_reference(top_left):
+                            st.error(f"Invalid cell reference: {top_left}")
+                            all_valid = False
+                        elif not self.validate_cell_reference(bottom_right):
+                            st.error(f"Invalid cell reference: {bottom_right}")
+                            all_valid = False
+                        else:
+                            # Additional validation: bottom-right should be after top-left
+                            try:
+                                tl_col, tl_row = coordinate_to_tuple(top_left)
+                                br_col, br_row = coordinate_to_tuple(bottom_right)
+                                
+                                if tl_row >= br_row or tl_col > br_col:
+                                    st.error("Bottom-right cell must be after top-left cell!")
+                                    all_valid = False
+                                else:
+                                    st.success(f"✅ Valid range: {top_left}:{bottom_right}")
+                                    sheet_boundaries.append({
+                                        'table_num': table_num,
+                                        'top_left': top_left,
+                                        'bottom_right': bottom_right
+                                    })
+                            except Exception as e:
+                                st.error(f"Error validating cell references: {str(e)}")
+                                all_valid = False
+                    elif table_num == 1 or (top_left or bottom_right):  # Required for first table
+                        if not top_left:
+                            st.warning("Please enter top-left cell")
+                        if not bottom_right:
+                            st.warning("Please enter bottom-right cell")
+                        all_valid = False
+                    
+                    st.markdown('</div>', unsafe_allow_html=True)
+            
+            if sheet_boundaries:
+                boundaries[sheet_name] = sheet_boundaries
+        
+        # Show process button only if all inputs are valid
+        if all_valid and boundaries:
+            if st.button("🔧 Process and Add Markers", use_container_width=True, type="primary"):
+                return boundaries
+        elif not boundaries:
+            st.info("Please define boundaries for at least one table to proceed.")
+        
+        return None
+    
+    def add_markers_to_file(self, file_path: str, boundaries: Dict[str, List[Dict]], output_path: str) -> bool:
+        """
+        Add START/END markers to Excel file based on user-defined boundaries
+        """
+        try:
+            # Load workbook
+            wb = openpyxl.load_workbook(file_path)
+            
+            for sheet_name, table_boundaries in boundaries.items():
+                if sheet_name not in wb.sheetnames:
+                    continue
+                
+                sheet = wb[sheet_name]
+                
+                for table_info in table_boundaries:
+                    top_left = table_info['top_left']
+                    bottom_right = table_info['bottom_right']
+                    
+                    # Parse cell references
+                    tl_col, tl_row = coordinate_to_tuple(top_left)
+                    br_col, br_row = coordinate_to_tuple(bottom_right)
+                    
+                    # Place START marker (one row above top-left, same column)
+                    start_row = tl_row - 1
+                    if start_row < 1:
+                        start_row = 1
+                    start_cell = sheet.cell(row=start_row, column=tl_col)
+                    start_cell.value = "START"
+                    
+                    # Place END marker (one row below bottom-right, same column as top-left)
+                    end_row = br_row + 1
+                    end_cell = sheet.cell(row=end_row, column=tl_col)
+                    end_cell.value = "END"
+                    
+                    # Optional: Add some formatting to make markers stand out
+                    from openpyxl.styles import Font, PatternFill
+                    marker_font = Font(bold=True, color="FF0000")
+                    marker_fill = PatternFill(start_color="FFFF00", end_color="FFFF00", fill_type="solid")
+                    
+                    start_cell.font = marker_font
+                    start_cell.fill = marker_fill
+                    end_cell.font = marker_font
+                    end_cell.fill = marker_fill
+            
+            # Save the modified workbook
+            wb.save(output_path)
+            wb.close()
+            return True
+            
+        except Exception as e:
+            st.error(f"Error adding markers: {str(e)}")
+            return False
+    
+    def display_validation_results(self, scan_results: Dict[str, Dict[str, bool]], file_type: str):
+        """Display the results of marker scanning"""
+        if 'error' in scan_results:
+            st.error(f"Error scanning file: {scan_results['error']}")
+            return False
+        
+        all_valid = True
+        
+        # Create a summary
+        valid_sheets = []
+        invalid_sheets = []
+        
+        for sheet_name, results in scan_results.items():
+            if 'error' in results:
+                invalid_sheets.append(f"{sheet_name}: {results['error']}")
+                all_valid = False
+            elif results.get('valid', False):
+                valid_sheets.append(sheet_name)
+            else:
+                issues = []
+                if not results.get('has_start', False):
+                    issues.append("missing START marker(s)")
+                if not results.get('has_end', False):
+                    issues.append("missing END marker(s)")
+                if issues:
+                    invalid_sheets.append(f"{sheet_name}: {', '.join(issues)}")
+                else:
+                    invalid_sheets.append(f"{sheet_name}: incorrect number of markers")
+                all_valid = False
+        
+        # Display summary
+        if all_valid:
+            st.markdown('<div class="success-message">✅ Critical Check: START/END markers found and correctly placed in all relevant sheets.</div>', unsafe_allow_html=True)
+            
+            # Show details in expander
+            with st.expander("📋 Marker Validation Details", expanded=False):
+                for sheet_name in valid_sheets:
+                    st.success(f"✓ {sheet_name}: All markers present and valid")
+        else:
+            st.markdown('<div class="error-message">❌ Critical Check Failed: START/END markers are missing or incorrectly placed.</div>', unsafe_allow_html=True)
+            
+            # Show details
+            with st.expander("❌ Validation Issues", expanded=True):
+                for issue in invalid_sheets:
+                    st.error(f"✗ {issue}")
+                
+                st.info("You'll need to define the data table boundaries so we can add the markers for you.")
+        
+        return all_valid
+    
+    def run_validation(self, file_path: str, file_type: str, file_key: str) -> bool:
+        """
+        Main method to run the complete marker validation workflow
+        Returns: True if validation passes or markers are successfully added
+        """
+        st.markdown("### 🔍 Critical START/END Marker Validation")
+        
+        # Check if we've already validated this file successfully
+        if f"{file_key}_markers_validated" in st.session_state and st.session_state[f"{file_key}_markers_validated"]:
+            st.success("✅ START/END markers already validated for this file")
+            return True
+        
+        # Scan for existing markers
+        with st.spinner("Scanning for START/END markers..."):
+            scan_results = self.scan_for_markers(file_path, file_type)
+        
+        # Display results
+        is_valid = self.display_validation_results(scan_results, file_type)
+        
+        if is_valid:
+            st.session_state[f"{file_key}_markers_validated"] = True
+            return True
+        
+        # If not valid, show UI for marker placement
+        st.markdown("---")
+        boundaries = self.display_marker_validation_ui(file_path, file_type)
+        
+        if boundaries:
+            # Create a modified file with markers
+            with st.spinner("Adding START/END markers to your file..."):
+                # Create output path
+                original_name = Path(file_path).stem
+                extension = Path(file_path).suffix
+                output_filename = f"{original_name}_markers_added{extension}"
+                output_path = Path(st.session_state.temp_dir) / output_filename
+                
+                # Add markers
+                success = self.add_markers_to_file(file_path, boundaries, str(output_path))
+                
+                if success:
+                    st.success("✅ Markers added successfully!")
+                    
+                    # Provide download link
+                    with open(output_path, 'rb') as f:
+                        file_data = f.read()
+                    
+                    st.markdown("### 📥 Download Modified File")
+                    st.markdown("""
+                    <div class="info-box">
+                    <b>Important:</b> Please download the modified file below and:
+                    <ol>
+                        <li>Open it in Excel to verify the START/END markers are correctly placed</li>
+                        <li>If correct, save it and re-upload this modified version</li>
+                        <li>If there's an issue, you can try defining the boundaries again</li>
+                    </ol>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    st.download_button(
+                        label="⬇️ Download File with Markers",
+                        data=file_data,
+                        file_name=output_filename,
+                        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                        use_container_width=True
+                    )
+                    
+                    st.info("After verification, please re-upload the modified file to continue.")
+                    return False
+                else:
+                    st.error("Failed to add markers. Please check your inputs and try again.")
+                    return False
+        
+        return False
