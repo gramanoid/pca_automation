@@ -12,6 +12,7 @@ import tempfile
 import re
 from typing import Dict, List, Tuple, Optional
 import os
+import numpy as np
 
 class MarkerValidationComponent:
     """Component for validating and placing START/END markers in Excel files"""
@@ -33,6 +34,78 @@ class MarkerValidationComponent:
         """Validate if a string is a valid Excel cell reference"""
         pattern = r'^[A-Z]+[0-9]+$'
         return bool(re.match(pattern, cell_ref.upper()))
+    
+    def auto_detect_table_boundaries(self, sheet_name: str, file_path: str, table_num: int = 1) -> Optional[Tuple[str, str]]:
+        """
+        Auto-detect table boundaries by analyzing data patterns
+        Returns: Tuple of (top_left, bottom_right) or None if not detected
+        """
+        try:
+            # Read the sheet with pandas
+            df = pd.read_excel(file_path, sheet_name=sheet_name, header=None)
+            
+            # Skip if empty
+            if df.empty:
+                return None
+            
+            # Find first non-empty row (potential header)
+            first_data_row = None
+            for idx in range(min(50, len(df))):  # Check first 50 rows
+                row_data = df.iloc[idx]
+                non_empty_count = row_data.notna().sum()
+                if non_empty_count >= 3:  # At least 3 non-empty cells
+                    first_data_row = idx
+                    break
+            
+            if first_data_row is None:
+                return None
+            
+            # For DELIVERED files with 2 tables, try to find the second table
+            if table_num == 2:
+                # Look for a gap in data (empty rows between tables)
+                gap_start = None
+                for idx in range(first_data_row + 2, min(len(df), 100)):
+                    row_data = df.iloc[idx]
+                    if row_data.notna().sum() == 0:  # Empty row
+                        if gap_start is None:
+                            gap_start = idx
+                    elif gap_start is not None and row_data.notna().sum() >= 3:
+                        # Found start of second table
+                        first_data_row = idx
+                        break
+            
+            # Find the data boundaries from the detected start
+            data_subset = df.iloc[first_data_row:]
+            
+            # Find columns with data
+            cols_with_data = []
+            for col in range(len(df.columns)):
+                if data_subset.iloc[:, col].notna().any():
+                    cols_with_data.append(col)
+            
+            if not cols_with_data:
+                return None
+            
+            first_col = min(cols_with_data)
+            last_col = max(cols_with_data)
+            
+            # Find last row with data
+            last_data_row = first_data_row
+            for idx in range(len(data_subset) - 1, -1, -1):
+                row_data = data_subset.iloc[idx]
+                if row_data.notna().sum() > 0:
+                    last_data_row = first_data_row + idx
+                    break
+            
+            # Convert to Excel coordinates
+            top_left = f"{get_column_letter(first_col + 1)}{first_data_row + 1}"
+            bottom_right = f"{get_column_letter(last_col + 1)}{last_data_row + 1}"
+            
+            return (top_left, bottom_right)
+            
+        except Exception as e:
+            st.warning(f"Auto-detection failed: {str(e)}")
+            return None
     
     def scan_for_markers(self, file_path: str, file_type: str) -> Dict[str, Dict[str, bool]]:
         """
@@ -80,10 +153,22 @@ class MarkerValidationComponent:
                     
                     # Determine if markers are valid
                     expected_tables = self.file_requirements[file_type]['tables_per_sheet']
-                    sheet_results['valid'] = (
-                        len(sheet_results['start_locations']) == expected_tables and
-                        len(sheet_results['end_locations']) == expected_tables
-                    )
+                    
+                    # For PLANNED files, markers can form a rectangle (multiple START/END)
+                    # or be single markers. Check if we have at least the expected tables
+                    if file_type == 'PLANNED':
+                        # Valid if we have at least one START and one END marker
+                        sheet_results['valid'] = (
+                            len(sheet_results['start_locations']) >= 1 and
+                            len(sheet_results['end_locations']) >= 1
+                        )
+                    else:
+                        # For DELIVERED, we expect exactly 2 pairs (one for R&F, one for Media)
+                        # But allow for multiple markers forming rectangles
+                        sheet_results['valid'] = (
+                            len(sheet_results['start_locations']) >= expected_tables and
+                            len(sheet_results['end_locations']) >= expected_tables
+                        )
                     
                     results[sheet_name] = sheet_results
                 else:
@@ -197,12 +282,24 @@ class MarkerValidationComponent:
                             table_hint = "R&F Data Table" if table_num == 1 else "Media Data Table"
                             st.caption(f"({table_hint})")
                     
+                    # Auto-detect button
+                    if st.button(f"🔍 Auto-Detect Boundaries", key=f"{sheet_name}_table{table_num}_auto"):
+                        detected = self.auto_detect_table_boundaries(sheet_name, file_path, table_num)
+                        if detected:
+                            st.session_state[f"{sheet_name}_table{table_num}_top_left"] = detected[0]
+                            st.session_state[f"{sheet_name}_table{table_num}_bottom_right"] = detected[1]
+                            st.success(f"✅ Auto-detected: {detected[0]} to {detected[1]}")
+                            st.rerun()
+                        else:
+                            st.warning("Could not auto-detect boundaries. Please enter manually.")
+                    
                     col1, col2 = st.columns(2)
                     
                     with col1:
                         top_left = st.text_input(
                             "Top-Left Cell (e.g., A5):",
                             key=f"{sheet_name}_table{table_num}_top_left",
+                            value=st.session_state.get(f"{sheet_name}_table{table_num}_top_left", ""),
                             help="First cell of your header row"
                         ).upper()
                     
@@ -210,6 +307,7 @@ class MarkerValidationComponent:
                         bottom_right = st.text_input(
                             "Bottom-Right Cell (e.g., G50):",
                             key=f"{sheet_name}_table{table_num}_bottom_right",
+                            value=st.session_state.get(f"{sheet_name}_table{table_num}_bottom_right", ""),
                             help="Last cell of your last data row"
                         ).upper()
                     
@@ -318,7 +416,7 @@ class MarkerValidationComponent:
         """Display the results of marker scanning"""
         if 'error' in scan_results:
             st.error(f"Error scanning file: {scan_results['error']}")
-            return False
+            return False, scan_results
         
         all_valid = True
         
@@ -351,11 +449,17 @@ class MarkerValidationComponent:
             # Show details in expander
             with st.expander(f"📋 {file_type} File - Marker Validation Details", expanded=False):
                 for sheet_name in valid_sheets:
-                    expected_tables = self.file_requirements[file_type]['tables_per_sheet']
-                    if expected_tables == 1:
-                        st.success(f"✓ {sheet_name}: Single table with valid START/END markers")
+                    sheet_data = scan_results.get(sheet_name, {})
+                    start_count = len(sheet_data.get('start_locations', []))
+                    end_count = len(sheet_data.get('end_locations', []))
+                    
+                    if file_type == 'PLANNED':
+                        if start_count > 1 or end_count > 1:
+                            st.success(f"✓ {sheet_name}: Data region defined with {start_count} START and {end_count} END markers")
+                        else:
+                            st.success(f"✓ {sheet_name}: Single table with valid START/END markers")
                     else:
-                        st.success(f"✓ {sheet_name}: Both R&F and Media tables have valid START/END markers")
+                        st.success(f"✓ {sheet_name}: Found {start_count} START and {end_count} END markers for R&F and Media tables")
         else:
             st.markdown(f'<div class="error-message">❌ Critical Check Failed: START/END markers are missing or incorrectly placed in your {file_type} file.</div>', unsafe_allow_html=True)
             
@@ -368,7 +472,7 @@ class MarkerValidationComponent:
                 
                 st.info("You'll need to define the data table boundaries so we can add the markers for you.")
         
-        return all_valid
+        return all_valid, scan_results
     
     def run_validation(self, file_path: str, file_type: str, file_key: str) -> bool:
         """
@@ -387,7 +491,7 @@ class MarkerValidationComponent:
             scan_results = self.scan_for_markers(file_path, file_type)
         
         # Display results
-        is_valid = self.display_validation_results(scan_results, file_type)
+        is_valid, scan_results = self.display_validation_results(scan_results, file_type)
         
         if is_valid:
             st.session_state[f"{file_key}_markers_validated"] = True

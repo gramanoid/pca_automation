@@ -235,11 +235,11 @@ class ConfigSidebar:
                - Required for enhanced AI-powered mapping
                - Improves column matching accuracy
             
-            ### Support
+            ### Support & Resources
             
-            📧 Contact: support@pca-automation.com
             📚 [Documentation](https://github.com/gramanoid/pca_automation)
             🐛 [Report Issue](https://github.com/gramanoid/pca_automation/issues)
+            💬 [Discussions](https://github.com/gramanoid/pca_automation/discussions)
             """)
     
     def get_current_settings_summary(self) -> Dict[str, Any]:
