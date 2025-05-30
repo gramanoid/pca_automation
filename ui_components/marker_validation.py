@@ -102,25 +102,49 @@ class MarkerValidationComponent:
         Display UI for user-guided marker placement
         Returns: Dict with sheet names as keys and list of table boundaries as values
         """
-        st.markdown('<div class="warning-message">⚠️ Action Required: START/END markers are missing or misplaced. Let\'s define your data tables so we can add them for you.</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="warning-message">⚠️ Action Required: START/END markers are missing or misplaced in your <b>{file_type}</b> file. Let\'s define your data tables so we can add them for you.</div>', unsafe_allow_html=True)
         
         # Show visual guide
         with st.expander("📖 Visual Guide - Understanding Table Boundaries", expanded=True):
-            st.markdown("""
-            <div class="info-box">
-            <h4>How to identify your data table boundaries:</h4>
-            <ul>
-                <li><b>Top-Left Cell:</b> The first cell of your header row (usually contains column names)</li>
-                <li><b>Bottom-Right Cell:</b> The last cell of your last data row</li>
-            </ul>
-            <p><b>Example:</b> If your data starts at A5 (header) and ends at G50, then:</p>
-            <ul>
-                <li>Top-Left Cell = A5</li>
-                <li>Bottom-Right Cell = G50</li>
-            </ul>
-            <p><b>Note:</b> START marker will be placed one row above your top-left cell, END marker one row below your bottom row.</p>
-            </div>
-            """, unsafe_allow_html=True)
+            if file_type == 'PLANNED':
+                st.markdown("""
+                <div class="info-box">
+                <h4>PLANNED File - Single Table per Sheet:</h4>
+                <p>Each platform sheet (DV360, META, TIKTOK) contains <b>one data table</b> with campaign information.</p>
+                <ul>
+                    <li><b>Top-Left Cell:</b> The first cell of your header row (usually contains column names like 'Campaign', 'Market', etc.)</li>
+                    <li><b>Bottom-Right Cell:</b> The last cell of your last data row</li>
+                </ul>
+                <p><b>Example:</b> If your data starts at A5 (header) and ends at G50, then:</p>
+                <ul>
+                    <li>Top-Left Cell = A5</li>
+                    <li>Bottom-Right Cell = G50</li>
+                </ul>
+                <p><b>Note:</b> START marker will be placed one row above your top-left cell, END marker one row below your bottom row.</p>
+                </div>
+                """, unsafe_allow_html=True)
+            else:  # DELIVERED
+                st.markdown("""
+                <div class="info-box">
+                <h4>DELIVERED File - Two Tables per Sheet:</h4>
+                <p>Each platform sheet contains <b>two separate data tables</b>:</p>
+                <ol>
+                    <li><b>R&F (Reach & Frequency) Table:</b> Usually the first table, contains reach and frequency metrics</li>
+                    <li><b>Media Table:</b> Usually the second table, contains impressions, clicks, spend, etc.</li>
+                </ol>
+                <p><b>For each table, identify:</b></p>
+                <ul>
+                    <li><b>Top-Left Cell:</b> The first cell of the header row for that specific table</li>
+                    <li><b>Bottom-Right Cell:</b> The last cell of the last data row for that specific table</li>
+                </ul>
+                <p><b>Example:</b></p>
+                <ul>
+                    <li>R&F Table: A5:G20 (Top-Left = A5, Bottom-Right = G20)</li>
+                    <li>Media Table: A25:H50 (Top-Left = A25, Bottom-Right = H50)</li>
+                </ul>
+                <p><b>Note:</b> START/END markers will bracket each table separately.</p>
+                </div>
+                """, unsafe_allow_html=True)
         
         # Get sheet information
         try:
@@ -159,7 +183,7 @@ class MarkerValidationComponent:
                 all_valid = False
                 continue
             
-            st.markdown(f"### 📋 Sheet: {sheet_name}")
+            st.markdown(f"### 📋 {file_type} File - Sheet: {sheet_name}")
             
             sheet_boundaries = []
             
@@ -322,17 +346,23 @@ class MarkerValidationComponent:
         
         # Display summary
         if all_valid:
-            st.markdown('<div class="success-message">✅ Critical Check: START/END markers found and correctly placed in all relevant sheets.</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="success-message">✅ Critical Check: START/END markers found and correctly placed in all relevant sheets of your {file_type} file.</div>', unsafe_allow_html=True)
             
             # Show details in expander
-            with st.expander("📋 Marker Validation Details", expanded=False):
+            with st.expander(f"📋 {file_type} File - Marker Validation Details", expanded=False):
                 for sheet_name in valid_sheets:
-                    st.success(f"✓ {sheet_name}: All markers present and valid")
+                    expected_tables = self.file_requirements[file_type]['tables_per_sheet']
+                    if expected_tables == 1:
+                        st.success(f"✓ {sheet_name}: Single table with valid START/END markers")
+                    else:
+                        st.success(f"✓ {sheet_name}: Both R&F and Media tables have valid START/END markers")
         else:
-            st.markdown('<div class="error-message">❌ Critical Check Failed: START/END markers are missing or incorrectly placed.</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="error-message">❌ Critical Check Failed: START/END markers are missing or incorrectly placed in your {file_type} file.</div>', unsafe_allow_html=True)
             
             # Show details
-            with st.expander("❌ Validation Issues", expanded=True):
+            with st.expander(f"❌ {file_type} File - Validation Issues", expanded=True):
+                if file_type == 'DELIVERED':
+                    st.info("Note: DELIVERED files require 2 sets of START/END markers per sheet (R&F table and Media table)")
                 for issue in invalid_sheets:
                     st.error(f"✗ {issue}")
                 
@@ -345,7 +375,7 @@ class MarkerValidationComponent:
         Main method to run the complete marker validation workflow
         Returns: True if validation passes or markers are successfully added
         """
-        st.markdown("### 🔍 Critical START/END Marker Validation")
+        st.markdown(f"### 🔍 Critical START/END Marker Validation - {file_type} File")
         
         # Check if we've already validated this file successfully
         if f"{file_key}_markers_validated" in st.session_state and st.session_state[f"{file_key}_markers_validated"]:
