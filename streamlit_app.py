@@ -1,5 +1,5 @@
 """
-Media Plan to Raw Data Automation - Streamlit Web Interface
+PCA Automation - Streamlit Web Interface
 A user-friendly interface for the Planned vs Delivered automation workflow.
 """
 
@@ -116,7 +116,7 @@ def cleanup_temp_files():
         shutil.rmtree(st.session_state.temp_dir)
 
 # Header
-st.markdown('<h1 class="main-header">📊 Media Plan to Raw Data Automation</h1>', unsafe_allow_html=True)
+st.markdown('<h1 class="main-header">📊 PCA Automation</h1>', unsafe_allow_html=True)
 
 # Sidebar
 with st.sidebar:
@@ -230,7 +230,7 @@ if st.session_state.current_stage == 1:
         st.markdown('<div class="success-message">✅ All required files uploaded! You can proceed to Data Processing.</div>', unsafe_allow_html=True)
         st.session_state.processing_complete[1] = True
         
-        if st.button("➡️ Continue to Data Processing", type="primary", use_container_width=True):
+        if st.button("➡️ Continue to Data Processing", use_container_width=True):
             st.session_state.current_stage = 2
             st.rerun()
     else:
@@ -243,7 +243,7 @@ elif st.session_state.current_stage == 2:
     
     st.info("This stage extracts data from your uploaded files and combines them for template mapping.")
     
-    if st.button("🚀 Start Data Processing", type="primary", use_container_width=True):
+    if st.button("🚀 Start Data Processing", use_container_width=True):
         try:
             with st.spinner("Extracting and combining data..."):
                 # Create progress placeholders
@@ -304,7 +304,7 @@ elif st.session_state.current_stage == 2:
             st.error("Please check your input files and try again.")
     
     if st.session_state.processing_complete.get(2, False):
-        if st.button("➡️ Continue to Template Mapping", type="primary", use_container_width=True):
+        if st.button("➡️ Continue to Template Mapping", use_container_width=True):
             st.session_state.current_stage = 3
             st.rerun()
 
@@ -321,7 +321,7 @@ elif st.session_state.current_stage == 3:
     else:
         st.warning("⚠️ No API key set - Using rule-based mapping only")
     
-    if st.button("🎯 Start Template Mapping", type="primary", use_container_width=True):
+    if st.button("🎯 Start Template Mapping", use_container_width=True):
         try:
             with st.spinner("Mapping data to template..."):
                 # Create progress placeholders
@@ -381,7 +381,7 @@ elif st.session_state.current_stage == 3:
             st.error("Please check the error details and try again.")
     
     if st.session_state.processing_complete.get(3, False):
-        if st.button("➡️ Continue to Validation", type="primary", use_container_width=True):
+        if st.button("➡️ Continue to Validation", use_container_width=True):
             st.session_state.current_stage = 4
             st.rerun()
 
@@ -391,7 +391,7 @@ elif st.session_state.current_stage == 4:
     
     st.info("This stage validates the accuracy and completeness of your mapped data.")
     
-    if st.button("🔍 Run Validation", type="primary", use_container_width=True):
+    if st.button("🔍 Run Validation", use_container_width=True):
         try:
             with st.spinner("Validating data..."):
                 # Create progress placeholders
@@ -471,7 +471,7 @@ elif st.session_state.current_stage == 4:
             st.error("Please check the error details and try again.")
     
     if st.session_state.processing_complete.get(4, False):
-        if st.button("➡️ Continue to Results", type="primary", use_container_width=True):
+        if st.button("➡️ Continue to Results", use_container_width=True):
             st.session_state.current_stage = 5
             st.rerun()
 
@@ -565,7 +565,7 @@ elif st.session_state.current_stage == 5:
     # Action buttons
     col1, col2 = st.columns(2)
     with col1:
-        if st.button("🔄 Start New Process", type="primary", use_container_width=True):
+        if st.button("🔄 Start New Process", use_container_width=True):
             # Reset session state
             cleanup_temp_files()
             for key in ['current_stage', 'workflow_data', 'uploaded_files', 'processing_complete']:
@@ -588,7 +588,7 @@ elif st.session_state.current_stage == 5:
 st.divider()
 st.markdown("""
 <div style='text-align: center; color: #666; padding: 1rem;'>
-    <p>Media Plan to Raw Data Automation v1.0 | 
+    <p>PCA Automation v1.0 | 
     <a href='https://github.com/gramanoid/pca_automation' target='_blank'>GitHub</a> | 
     Built with Streamlit</p>
 </div>

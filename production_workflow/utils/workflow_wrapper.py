@@ -137,9 +137,10 @@ class WorkflowWrapper:
         Returns:
             Dict with validation results
         """
+        # Use the CLI wrapper script
         cmd = [
             sys.executable,
-            str(self.project_root / "production_workflow" / "04_validation" / "validate_accuracy.py"),
+            str(self.project_root / "production_workflow" / "04_validation" / "validate_accuracy_cli.py"),
             "--mapped-file", mapped_file,
             "--source-file", source_file
         ]
@@ -153,8 +154,12 @@ class WorkflowWrapper:
                 cwd=str(self.project_root)
             )
             
-            # Parse validation results
-            validation_results = self._parse_validation_results(result.stdout)
+            # Parse JSON validation results
+            try:
+                validation_results = json.loads(result.stdout)
+            except json.JSONDecodeError:
+                # Fallback to parsing method
+                validation_results = self._parse_validation_results(result.stdout)
             return validation_results
             
         except subprocess.CalledProcessError as e:
