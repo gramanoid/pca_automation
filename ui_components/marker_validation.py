@@ -13,8 +13,12 @@ import re
 from typing import Dict, List, Tuple, Optional
 import os
 import numpy as np
-from .marker_preview import MarkerPreviewComponent
-from .history_manager import HistoryManager
+try:
+    from .marker_preview import MarkerPreviewComponent
+    from .history_manager import HistoryManager
+except ImportError:
+    from marker_preview import MarkerPreviewComponent
+    from history_manager import HistoryManager
 
 class MarkerValidationComponent:
     """Component for validating and placing START/END markers in Excel files"""
