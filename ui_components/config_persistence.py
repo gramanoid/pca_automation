@@ -125,7 +125,7 @@ class ConfigPersistence:
         col1, col2 = st.columns([3, 1])
         with col1:
             config_name = st.text_input("Configuration Name", key="save_config_name")
-            config_desc = st.text_area("Description (optional)", key="save_config_desc", height=60)
+            config_desc = st.text_area("Description (optional)", key="save_config_desc", height=70)
         with col2:
             st.write("")  # Spacing
             st.write("")
