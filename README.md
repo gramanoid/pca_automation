@@ -27,13 +27,29 @@
 
 ## Quick Start
 
+### Option 1: Web Interface (NEW! - Recommended)
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Run Streamlit app
+streamlit run streamlit_app.py
+
+# 3. Open http://localhost:8501 in your browser
+```
+See [STREAMLIT_GUIDE.md](STREAMLIT_GUIDE.md) for detailed instructions.
+
+### Option 2: Command Line
 ```bash
 # 1. Install dependencies
 pip install -r requirements.txt
 
 # 2. Run the complete pipeline
-python main_scripts/excel_data_extractor.py --planned input/PLANNED_*.xlsx --delivered input/DELIVERED_*.xlsx --output output/ --combine
-python main_scripts/simple_llm_mapper.py --input output/COMBINED_*.xlsx --template input/OUTPUT_TEMPLATE_FILE_EMPTY_FILE.xlsx --output output/final_mapped.xlsx
+python production_workflow/orchestration/run_complete_workflow.py
+
+# Or run steps individually:
+python production_workflow/01_data_extraction/extract_and_combine_data.py --planned input/PLANNED_*.xlsx --delivered input/DELIVERED_*.xlsx --output output/ --combine
+python production_workflow/03_template_mapping/map_to_template.py --input output/COMBINED_*.xlsx --template input/OUTPUT_TEMPLATE_FILE_EMPTY_FILE.xlsx --output output/final_mapped.xlsx
 
 # 3. View results
 ls output/
@@ -44,7 +60,7 @@ ls output/
 ```bash
 # With client-specific rules
 export CLIENT_ID=sensodyne
-python main_scripts/simple_llm_mapper.py --input output/COMBINED_*.xlsx --template input/OUTPUT_TEMPLATE_FILE_EMPTY_FILE.xlsx --output output/final_mapped.xlsx
+python production_workflow/03_template_mapping/map_to_template.py --input output/COMBINED_*.xlsx --template input/OUTPUT_TEMPLATE_FILE_EMPTY_FILE.xlsx --output output/final_mapped.xlsx
 
 # With Claude API for unknown mappings (optional)
 export ANTHROPIC_API_KEY=your_api_key_here
