@@ -1,17 +1,24 @@
 """
 PCA Automation - Streamlit Web Interface
-Temporarily using simplified version while debugging import issues
+Supports simple, gradual, and full versions based on environment settings
 """
 
 import streamlit as st
 import os
 
-# Check if we should use the simple version
-USE_SIMPLE_VERSION = os.getenv("USE_SIMPLE_APP", "true").lower() == "true"
+# Check which version to use
+APP_VERSION = os.getenv("APP_VERSION", "simple").lower()
 
-if USE_SIMPLE_VERSION:
-    # Import and run the simple version
+if APP_VERSION == "simple":
+    # Import and run the simple version (default, most stable)
     exec(open("streamlit_app_simple.py").read())
-else:
-    # Import and run the full version
+elif APP_VERSION == "gradual":
+    # Import and run the gradual enhancement version
+    exec(open("streamlit_app_gradual.py").read())
+elif APP_VERSION == "full":
+    # Import and run the full version (all features)
     exec(open("streamlit_app_full.py").read())
+else:
+    # Default to simple if unknown version
+    st.warning(f"Unknown APP_VERSION: {APP_VERSION}. Using simple version.")
+    exec(open("streamlit_app_simple.py").read())
