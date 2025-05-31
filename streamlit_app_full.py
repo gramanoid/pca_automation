@@ -39,6 +39,10 @@ from ui_components import (
     SmartSuggestions
 )
 
+# Import Phase 2 enhancements
+from ui_components.validation_dashboard_enhanced import EnhancedValidationDashboard
+from ui_components.error_recovery import ErrorRecoveryHandler, with_error_recovery
+
 # Import centralized styles
 from styles import apply_theme
 
@@ -98,6 +102,10 @@ performance_monitor = PerformanceMonitor()
 enhanced_dashboard = EnhancedDashboard()
 smart_suggestions = SmartSuggestions()
 
+# Phase 2 components
+enhanced_validation_dashboard = EnhancedValidationDashboard()
+error_handler = ErrorRecoveryHandler()
+
 # Utility functions
 def cleanup_temp_files():
     """Clean up temporary files on session end"""
@@ -109,22 +117,25 @@ def cleanup_temp_files():
 
 # Enhanced error handling decorator
 def handle_errors(func):
-    """Decorator for consistent error handling"""
+    """Decorator for consistent error handling with recovery options"""
     def wrapper(*args, **kwargs):
         try:
             return func(*args, **kwargs)
         except Exception as e:
-            error_msg = f"An error occurred: {str(e)}"
-            st.error(error_msg)
+            # Use enhanced error recovery
+            context = {
+                'function': func.__name__,
+                'stage': st.session_state.get('current_stage', 'Unknown'),
+                'can_skip': st.session_state.get('current_stage', 1) < 5
+            }
             
-            # Show detailed error in expander for debugging
-            with st.expander("🔍 Error Details", expanded=False):
-                st.code(traceback.format_exc())
+            # Add specific context based on function
+            if 'planned_path' in kwargs:
+                context['file_path'] = kwargs['planned_path']
+            elif 'mapped_file' in kwargs:
+                context['file_path'] = kwargs['mapped_file']
             
-            # Log error if debug mode is enabled
-            if st.session_state.get('debug_mode', False):
-                st.warning("Debug mode is enabled. Check logs for more details.")
-            
+            error_handler.render_error_recovery_ui(e, context)
             return None
     return wrapper
 
@@ -526,8 +537,8 @@ elif st.session_state.current_stage == 4:
                         "success"
                     )
                 
-                # Render the validation dashboard
-                validation_dashboard.render_validation_dashboard(validation_results)
+                # Render the enhanced validation dashboard with drill-down
+                enhanced_validation_dashboard.render_dashboard(validation_results, st.session_state.workflow_data)
                 
                 # Smart suggestions
                 st.markdown("---")
