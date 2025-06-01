@@ -7,7 +7,7 @@ import streamlit as st
 import os
 
 # Check which version to use
-APP_VERSION = os.getenv("APP_VERSION", "fixed").lower()
+APP_VERSION = os.getenv("APP_VERSION", "interactive").lower()
 
 if APP_VERSION == "simple":
     # Import and run the simple version (most stable)
@@ -24,6 +24,12 @@ elif APP_VERSION == "gradual":
 elif APP_VERSION == "full":
     # Import and run the full version (all features)
     exec(open("streamlit_app_full.py").read())
+elif APP_VERSION == "diagnostic":
+    # Import and run the diagnostic version for testing
+    exec(open("streamlit_app_diagnostic.py").read())
+elif APP_VERSION == "diagnostic_enhanced":
+    # Import and run the enhanced diagnostic version
+    exec(open("streamlit_app_diagnostic_enhanced.py").read())
 else:
     # Default to fixed if unknown version
     st.warning(f"Unknown APP_VERSION: {APP_VERSION}. Using fixed version.")
