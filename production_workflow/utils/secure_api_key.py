@@ -25,7 +25,7 @@ class SecureAPIKeyManager:
         'anthropic': None,  # Will be set after initial encryption
         'openai': None,     # Optional: for OpenAI support
         'google': None,     # Optional: for Google AI support
-        'openrouter': None  # OpenRouter API key for Gemini 2.5 Pro Preview
+        'openrouter': 'Z0FBQUFBQm9TREZBbjBkVzZDSmVUOVJDd2tFcXl0THo2TzZpVWsyYS03UHgtUHg2eUF4Wk1yQTZmanM2YlBKZjhXSWVpOXFib2FnUjNzSXozcFFOT3F5VTFJYVFMODRWcXhmOUhha1dMNjk5OEhIRHVYMTJiU1Ewd1Q1dE5yR0hrcnNxOWR0SWZZQ2hQSy1rbFNyY2lGQTI4S1JFczBoQ09OTXg4SWdOQVVIdWhLdHE1bUtwY1dVPQ=='  # Encrypted OpenRouter API key
     }
     
     # Default model configuration
