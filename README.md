@@ -2,7 +2,7 @@
 
 Transform your media plans into actionable insights with AI-powered data mapping.
 
-[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://your-app-url.streamlit.app)
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://pcaautomation.streamlit.app/)
 
 ## What It Does
 
@@ -12,7 +12,7 @@ PCA Automation streamlines the process of converting media plan data (PLANNED vs
 
 ### Option 1: Web App (Recommended)
 
-1. Visit the [live app](https://your-app-url.streamlit.app)
+1. Visit the [live app](https://pcaautomation.streamlit.app/)
 2. Upload your files:
    - **Media Plan** (PLANNED file with START/END markers)
    - **Platform Data** (DELIVERED data from platforms)
