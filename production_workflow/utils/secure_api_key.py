@@ -24,8 +24,13 @@ class SecureAPIKeyManager:
     ENCRYPTED_KEYS = {
         'anthropic': None,  # Will be set after initial encryption
         'openai': None,     # Optional: for OpenAI support
-        'google': None      # Optional: for Google AI support
+        'google': None,     # Optional: for Google AI support
+        'openrouter': None  # OpenRouter API key for Gemini 2.5 Pro Preview
     }
+    
+    # Default model configuration
+    DEFAULT_PROVIDER = 'openrouter'
+    DEFAULT_MODEL = 'google/gemini-2.5-pro-preview'  # HARDCODED: Most recent Gemini model
     
     # Salt for key derivation (can be public)
     SALT = b'pca_automation_salt_v1_2025'
@@ -78,7 +83,8 @@ class SecureAPIKeyManager:
         env_vars = {
             'anthropic': 'ANTHROPIC_API_KEY',
             'openai': 'OPENAI_API_KEY',
-            'google': 'GOOGLE_API_KEY'
+            'google': 'GOOGLE_API_KEY',
+            'openrouter': 'OPENROUTER_API_KEY'
         }
         
         # First check environment variable
@@ -153,18 +159,35 @@ class SecureAPIKeyManager:
 
 
 # Convenience function for easy access
-def get_api_key(provider: str = 'anthropic') -> str:
+def get_api_key(provider: str = None) -> str:
     """
     Get the API key using the secure manager.
     
     Args:
-        provider: The API provider ('anthropic', 'openai', 'google')
+        provider: The API provider ('anthropic', 'openai', 'google', 'openrouter')
+                 If None, uses the default provider (openrouter)
     
     Returns:
         The API key string or None if not available
     """
     manager = SecureAPIKeyManager.get_instance()
+    if provider is None:
+        provider = manager.DEFAULT_PROVIDER
     return manager.get_api_key(provider)
+
+def get_default_model_config() -> dict:
+    """
+    Get the default model configuration.
+    
+    Returns:
+        Dictionary with 'provider' and 'model' keys
+    """
+    manager = SecureAPIKeyManager.get_instance()
+    return {
+        'provider': manager.DEFAULT_PROVIDER,
+        'model': manager.DEFAULT_MODEL,
+        'api_key': get_api_key()
+    }
 
 
 # CLI tool for key management
@@ -175,9 +198,10 @@ def main():
     if len(sys.argv) < 2:
         print("Usage: python secure_api_key.py [command]")
         print("\nCommands:")
-        print("  encrypt <api_key>  - Encrypt a new API key")
-        print("  test              - Test current key configuration")
-        print("  update            - Interactive key update")
+        print("  encrypt <provider> <api_key>  - Encrypt a new API key")
+        print("  test                          - Test current key configuration")
+        print("  update                        - Interactive key update")
+        print("  model-info                    - Show default model configuration")
         return
     
     command = sys.argv[1]
@@ -187,14 +211,14 @@ def main():
         if len(sys.argv) < 4:
             print("Error: Please provide the provider and API key to encrypt")
             print("Usage: python secure_api_key.py encrypt <provider> <api_key>")
-            print("Providers: anthropic, openai, google")
+            print("Providers: anthropic, openai, google, openrouter")
             return
         
         provider = sys.argv[2]
         api_key = sys.argv[3]
-        if provider not in ['anthropic', 'openai', 'google']:
+        if provider not in ['anthropic', 'openai', 'google', 'openrouter']:
             print(f"Error: Invalid provider '{provider}'")
-            print("Valid providers: anthropic, openai, google")
+            print("Valid providers: anthropic, openai, google, openrouter")
             return
         manager.update_encrypted_key(provider, api_key)
     
@@ -202,11 +226,16 @@ def main():
         print("\nTesting API key configuration...")
         print("-" * 40)
         
-        for provider in ['anthropic', 'openai', 'google']:
+        for provider in ['anthropic', 'openai', 'google', 'openrouter']:
             print(f"\n{provider.upper()}:")
             
             # Check environment variable
-            env_vars = {'anthropic': 'ANTHROPIC_API_KEY', 'openai': 'OPENAI_API_KEY', 'google': 'GOOGLE_API_KEY'}
+            env_vars = {
+                'anthropic': 'ANTHROPIC_API_KEY', 
+                'openai': 'OPENAI_API_KEY', 
+                'google': 'GOOGLE_API_KEY',
+                'openrouter': 'OPENROUTER_API_KEY'
+            }
             env_key = os.getenv(env_vars[provider])
             print(f"  Environment variable set: {'Yes' if env_key else 'No'}")
             
@@ -222,6 +251,9 @@ def main():
                 print(f"  ✅ {provider} configuration is working!")
             else:
                 print(f"  ❌ No {provider} API key available!")
+        
+        print(f"\n🎯 Default Provider: {manager.DEFAULT_PROVIDER}")
+        print(f"🤖 Default Model: {manager.DEFAULT_MODEL}")
     
     elif command == "update":
         print("\nInteractive API Key Update")
@@ -230,7 +262,7 @@ def main():
         print("You can skip any provider by pressing Enter.\n")
         
         encrypted_keys = {}
-        for provider in ['anthropic', 'openai', 'google']:
+        for provider in ['anthropic', 'openai', 'google', 'openrouter']:
             api_key = input(f"Enter your {provider.upper()} API key (or press Enter to skip): ").strip()
             
             if api_key:
@@ -243,13 +275,27 @@ def main():
             print("="*60)
             print("\nReplace the ENCRYPTED_KEYS dictionary with:")
             print("\nENCRYPTED_KEYS = {")
-            for provider in ['anthropic', 'openai', 'google']:
+            for provider in ['anthropic', 'openai', 'google', 'openrouter']:
                 if provider in encrypted_keys:
                     print(f"    '{provider}': '{encrypted_keys[provider]}',")
                 else:
                     print(f"    '{provider}': None,")
             print("}")
             print("\n" + "="*60)
+    
+    elif command == "model-info":
+        print("\nDefault Model Configuration")
+        print("-" * 40)
+        config = get_default_model_config()
+        print(f"Provider: {config['provider']}")
+        print(f"Model: {config['model']}")
+        print(f"API Key Available: {'Yes' if config['api_key'] else 'No'}")
+        
+        if config['api_key']:
+            print("\n✅ Ready to use with OpenRouter and Gemini 2.0!")
+        else:
+            print("\n⚠️ Please configure your OpenRouter API key first")
+            print("Run: python secure_api_key.py encrypt openrouter YOUR_API_KEY")
     
     else:
         print(f"Unknown command: {command}")

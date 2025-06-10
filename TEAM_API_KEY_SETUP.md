@@ -2,6 +2,12 @@
 
 This guide explains how to set up a hardcoded, encrypted API key that your entire team can use without individual configuration.
 
+## 🚀 Default Configuration
+
+**Provider**: OpenRouter  
+**Model**: google/gemini-2.5-pro-preview  
+**Why**: Latest Gemini model with superior performance for data mapping tasks
+
 ## 🎯 Benefits
 
 - **Zero Configuration**: Team members can use the app immediately without API keys
@@ -38,13 +44,16 @@ This guide explains how to set up a hardcoded, encrypted API key that your entir
 ### Method 2: Command Line
 
 ```bash
+# For OpenRouter (RECOMMENDED - Gemini 2.5 Pro)
+python production_workflow/utils/secure_api_key.py encrypt openrouter YOUR_OPENROUTER_API_KEY
+
 # For Anthropic (Claude)
 python production_workflow/utils/secure_api_key.py encrypt anthropic YOUR_API_KEY_HERE
 
 # For OpenAI
 python production_workflow/utils/secure_api_key.py encrypt openai YOUR_API_KEY_HERE
 
-# For Google (Gemini)
+# For Google (Gemini Direct)
 python production_workflow/utils/secure_api_key.py encrypt google YOUR_API_KEY_HERE
 ```
 
@@ -62,9 +71,10 @@ Here's what the encrypted keys look like in the code:
 
 ```python
 ENCRYPTED_KEYS = {
-    'anthropic': 'gAAAAABh3x9K2M8N...',  # Your encrypted Anthropic key
-    'openai': None,                      # Not configured
-    'google': None                       # Not configured
+    'anthropic': None,                       # Not configured
+    'openai': None,                          # Not configured
+    'google': None,                          # Not configured
+    'openrouter': 'gAAAAABh3x9K2M8N...'      # Your encrypted OpenRouter key
 }
 ```
 
@@ -119,14 +129,27 @@ Testing API key configuration...
 
 ANTHROPIC:
   Environment variable set: No
-  Hardcoded key available: Yes
-  API key retrieved: sk-ant-...XYZ
-  ✅ anthropic configuration is working!
+  Hardcoded key available: No
+  ❌ No anthropic API key available!
 
 OPENAI:
   Environment variable set: No
   Hardcoded key available: No
   ❌ No openai API key available!
+
+GOOGLE:
+  Environment variable set: No
+  Hardcoded key available: No
+  ❌ No google API key available!
+
+OPENROUTER:
+  Environment variable set: No
+  Hardcoded key available: Yes
+  API key retrieved: sk-or-...XYZ
+  ✅ openrouter configuration is working!
+
+🎯 Default Provider: openrouter
+🤖 Default Model: google/gemini-2.5-pro-preview
 ```
 
 ## 👥 How Your Team Uses It
@@ -140,8 +163,9 @@ Once you've set up the encrypted key:
 
 The UI will show:
 ```
-🔐 Using secure team API key - No configuration needed!
+🔐 Using secure team API key with Gemini 2.5 Pro - No configuration needed!
 Your colleagues can use this app without entering any API key
+🤖 Model: google/gemini-2.5-pro-preview via OpenRouter
 ```
 
 ## 🔄 Updating the Key
@@ -157,8 +181,9 @@ To update the encrypted key:
 
 1. **Never commit unencrypted API keys**
 2. **The encrypted key is tied to the passphrase** - changing the passphrase logic will break decryption
-3. **Environment variables take precedence** - if `ANTHROPIC_API_KEY` is set, it will be used instead
+3. **Environment variables take precedence** - if `OPENROUTER_API_KEY` is set, it will be used instead
 4. **Test after deployment** - ensure the app works for team members
+5. **OpenRouter account needed** - Get your API key from https://openrouter.ai/keys
 
 ## 📊 Integration with the App
 

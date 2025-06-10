@@ -25,16 +25,18 @@ def main():
     
     # Get API key from user
     print("Which API provider do you want to configure?")
-    print("1. Anthropic (Claude)")
-    print("2. OpenAI (GPT)")
-    print("3. Google (Gemini)")
+    print("1. OpenRouter (RECOMMENDED - for Gemini 2.5 Pro)")
+    print("2. Anthropic (Claude)")
+    print("3. OpenAI (GPT)")
+    print("4. Google (Gemini Direct)")
     
-    choice = input("\nEnter choice (1-3): ").strip()
+    choice = input("\nEnter choice (1-4): ").strip()
     
     provider_map = {
-        '1': 'anthropic',
-        '2': 'openai',
-        '3': 'google'
+        '1': 'openrouter',
+        '2': 'anthropic',
+        '3': 'openai',
+        '4': 'google'
     }
     
     provider = provider_map.get(choice)

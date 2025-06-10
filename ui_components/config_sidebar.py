@@ -140,13 +140,15 @@ class ConfigSidebar:
             
             # API settings
             current_api_key = get_api_key()
-            has_hardcoded_key = current_api_key and not os.getenv("ANTHROPIC_API_KEY")
+            has_hardcoded_key = current_api_key and not os.getenv("OPENROUTER_API_KEY")
             
             if has_hardcoded_key:
-                st.success("🔐 Using secure team API key - No configuration needed!")
+                st.success("🔐 Using secure team API key with Gemini 2.5 Pro - No configuration needed!")
                 st.caption("Your colleagues can use this app without entering any API key")
+                st.caption("🤖 Model: google/gemini-2.5-pro-preview via OpenRouter")
             elif current_api_key:
                 st.info("🔑 Using API key from environment variable")
+                st.caption("🤖 Model: google/gemini-2.5-pro-preview via OpenRouter")
             else:
                 st.warning("⚠️ No API key configured - AI mapping will be disabled")
             
@@ -155,17 +157,17 @@ class ConfigSidebar:
                 st.divider()
                 st.caption("Advanced: Override Team API Key")
                 api_key = st.text_input(
-                    "Personal API Key (Optional)",
-                    value=os.getenv("ANTHROPIC_API_KEY", ""),
+                    "Personal OpenRouter API Key (Optional)",
+                    value=os.getenv("OPENROUTER_API_KEY", ""),
                     type="password",
-                    help="Only enter if you want to use your own key instead of the team key",
+                    help="Only enter if you want to use your own OpenRouter key instead of the team key",
                     placeholder="Leave empty to use team key"
                 )
                 if api_key:
-                    os.environ["ANTHROPIC_API_KEY"] = api_key
-                elif "ANTHROPIC_API_KEY" in os.environ and not api_key:
+                    os.environ["OPENROUTER_API_KEY"] = api_key
+                elif "OPENROUTER_API_KEY" in os.environ and not api_key:
                     # Clear the environment variable if user empties the field
-                    del os.environ["ANTHROPIC_API_KEY"]
+                    del os.environ["OPENROUTER_API_KEY"]
             
             # Processing options
             st.subheader("Processing Options")
@@ -255,6 +257,7 @@ class ConfigSidebar:
                - Create custom configurations for specific needs
             
             4. **API Key:**
+               - Uses OpenRouter with Gemini 2.5 Pro Preview
                - Required for enhanced AI-powered mapping
                - Improves column matching accuracy
             
@@ -269,7 +272,7 @@ class ConfigSidebar:
         """Get a summary of current configuration settings"""
         return {
             'client_id': os.getenv('CLIENT_ID', 'Not Set'),
-            'api_key_configured': bool(os.getenv('ANTHROPIC_API_KEY')),
+            'api_key_configured': bool(get_api_key()),
             'llm_mapping_enabled': st.session_state.get('enable_llm_mapping', True),
             'validation_mode': 'Strict' if st.session_state.get('validation_strict_mode', False) else 'Normal',
             'market_sorting': st.session_state.get('market_sort_by', 'budget_desc'),

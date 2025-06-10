@@ -17,11 +17,11 @@ from openpyxl import load_workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
 from openpyxl.utils import get_column_letter
 from openpyxl.styles import Font, Alignment, numbers, PatternFill, Border, Side
-from anthropic import Anthropic
 import argparse
 import sys
 from pathlib import Path
 import importlib
+import requests
 # Add parent directory to path to import from sibling directories
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
@@ -35,7 +35,7 @@ PerformanceMonitor = monitor_performance_module.PerformanceMonitor
 ProgressTracker = monitor_performance_module.ProgressTracker
 
 # Import secure API key manager
-from production_workflow.utils.secure_api_key import get_api_key
+from production_workflow.utils.secure_api_key import get_api_key, get_default_model_config
 
 # Add precision handler import
 sys.path.append(str(Path(__file__).parent.parent))
@@ -76,22 +76,31 @@ class SimpleLLMMapper:
         else:
             self.precision_handler = None
             
-        # Use secure API key manager to get the key
-        self.api_key = api_key or get_api_key()
+        # Get model configuration (uses OpenRouter by default)
+        model_config = get_default_model_config()
+        self.api_key = api_key or model_config['api_key']
+        self.model = model_config['model']
+        self.provider = model_config['provider']
+        
         if not self.api_key:
-            logger.warning("No Anthropic API key found. LLM features will be disabled.")
-            self.claude = None
+            logger.warning(f"No {self.provider.upper()} API key found. LLM features will be disabled.")
             self.api_available = False
         else:
             try:
-                self.claude = Anthropic(api_key=self.api_key)
+                # Initialize OpenRouter configuration
+                self.api_url = "https://openrouter.ai/api/v1/chat/completions"
+                self.headers = {
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://github.com/gramanoid/pca_automation",
+                    "X-Title": "PCA Automation"
+                }
                 self.api_available = True
-                logger.info("✅ Anthropic API initialized successfully")
+                logger.info(f"✅ {self.provider.upper()} API initialized with model: {self.model}")
                 # Test API connection
                 self._test_api_connection()
             except Exception as e:
-                logger.error(f"❌ Failed to initialize Anthropic API: {e}")
-                self.claude = None
+                logger.error(f"❌ Failed to initialize {self.provider.upper()} API: {e}")
                 self.api_available = False
             
         # Get client ID from environment
@@ -426,35 +435,51 @@ class SimpleLLMMapper:
     
     def _test_api_connection(self):
         """Test API connection with a simple request"""
-        if not self.claude:
+        if not self.api_available:
             return
             
         try:
-            logger.info("🔍 Testing Claude API connection...")
-            response = self.claude.messages.create(
-                model="claude-3-haiku-20240307",  # Use cheapest model for testing
-                max_tokens=50,
-                messages=[{
+            logger.info(f"🔍 Testing {self.provider.upper()} API connection with {self.model}...")
+            
+            payload = {
+                "model": self.model,
+                "messages": [{
                     "role": "user",
                     "content": "Say 'API working' if you can read this."
-                }]
+                }],
+                "max_tokens": 50,
+                "temperature": 0.1
+            }
+            
+            response = requests.post(
+                self.api_url,
+                headers=self.headers,
+                json=payload,
+                timeout=10
             )
-            result = response.content[0].text
-            if "API working" in result:
-                logger.info(f"✅ Claude API test successful: {result}")
+            
+            if response.status_code == 200:
+                result = response.json()
+                message = result.get('choices', [{}])[0].get('message', {}).get('content', '')
+                if "API working" in message:
+                    logger.info(f"✅ {self.provider.upper()} API test successful: {message}")
+                else:
+                    logger.warning(f"⚠️ Unexpected API response: {message}")
             else:
-                logger.warning(f"⚠️ Unexpected API response: {result}")
+                logger.error(f"❌ API request failed with status {response.status_code}: {response.text}")
+                self.api_available = False
+                
         except Exception as e:
-            logger.error(f"❌ Claude API test failed: {e}")
+            logger.error(f"❌ {self.provider.upper()} API test failed: {e}")
             self.api_available = False
     
     def _use_llm_for_unmapped_columns(self, unmapped_cols: List[str], template_cols: List[str], 
                                      sample_data: Dict[str, List]) -> Dict[str, str]:
-        """Use Claude API to map columns that aren't in our static mappings"""
+        """Use LLM API to map columns that aren't in our static mappings"""
         if not self.api_available or not unmapped_cols:
             return {}
         
-        logger.info(f"🤖 Using Claude API to map {len(unmapped_cols)} unmapped columns...")
+        logger.info(f"🤖 Using {self.model} to map {len(unmapped_cols)} unmapped columns...")
         
         try:
             # Prepare sample data for context
@@ -484,15 +509,28 @@ Example response:
 
 Your mappings:"""
 
-            logger.info(f"📤 Sending API request for {len(unmapped_cols)} columns")
-            response = self.claude.messages.create(
-                model="claude-3-5-sonnet-20241022",
-                max_tokens=500,
-                temperature=0.1,  # Low temperature for consistency
-                messages=[{"role": "user", "content": prompt}]
+            logger.info(f"📤 Sending API request for {len(unmapped_cols)} columns using {self.model}")
+            
+            payload = {
+                "model": self.model,
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 500,
+                "temperature": 0.1  # Low temperature for consistency
+            }
+            
+            response = requests.post(
+                self.api_url,
+                headers=self.headers,
+                json=payload,
+                timeout=30
             )
             
-            result_text = response.content[0].text
+            if response.status_code != 200:
+                logger.error(f"API request failed with status {response.status_code}: {response.text}")
+                return {}
+                
+            result_json = response.json()
+            result_text = result_json.get('choices', [{}])[0].get('message', {}).get('content', '')
             logger.info(f"📥 API Response received: {len(result_text)} characters")
             logger.info(f"API Response preview: {result_text[:200]}...")
             
