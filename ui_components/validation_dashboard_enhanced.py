@@ -175,7 +175,7 @@ class EnhancedValidationDashboard:
         # Mock historical data for demonstration
         historical_data = self._get_historical_data()
         
-        if historical_data:
+        if historical_data is not None and not historical_data.empty:
             # Trend chart
             fig_trend = self._create_trend_chart(historical_data)
             st.plotly_chart(fig_trend, use_container_width=True)
