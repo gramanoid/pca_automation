@@ -20,6 +20,7 @@ sys.path.insert(0, str(project_root))
 
 # Import enhanced progress tracking
 from ui_components.enhanced_progress_tracker import get_progress_tracker, get_mapping_tracker
+from ui_components.copy_button import copy_to_clipboard_button, error_display_with_copy
 
 # Page configuration
 st.set_page_config(
@@ -341,6 +342,65 @@ st.markdown("""
 #### Transform your media plans into actionable insights
 """)
 
+# Global error notification
+if 'error_logs' in st.session_state and st.session_state.error_logs:
+    error_count = len(st.session_state.error_logs)
+    latest_error = st.session_state.error_logs[-1]
+    
+    error_container = st.container()
+    with error_container:
+        col1, col2, col3 = st.columns([3, 2, 1])
+        
+        with col1:
+            st.error(f"⚠️ **{error_count} Error{'s' if error_count > 1 else ''} Detected**")
+        
+        with col2:
+            st.caption(f"Latest: {latest_error['stage']} - {latest_error['timestamp'].strftime('%H:%M:%S')}")
+        
+        with col3:
+            if st.button("View Errors", key="view_errors_top"):
+                st.session_state.show_error_details = True
+        
+        if st.session_state.get('show_error_details', False):
+            # Show error details with copy functionality
+            st.divider()
+            
+            # Format all errors for copying
+            all_errors_text = "=== PCA AUTOMATION ERROR LOG ===\n\n"
+            all_errors_text += f"Generated at: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+            all_errors_text += f"Total errors: {error_count}\n\n"
+            
+            for i, error in enumerate(st.session_state.error_logs, 1):
+                all_errors_text += f"--- Error {i} ---\n"
+                all_errors_text += f"Stage: {error['stage']}\n"
+                all_errors_text += f"Time: {error['timestamp'].strftime('%H:%M:%S')}\n"
+                all_errors_text += f"Error: {error['error']}\n"
+                if error.get('details'):
+                    all_errors_text += f"\nStack Trace:\n{error['details']}\n"
+                all_errors_text += "\n"
+            
+            # Display in markdown code block
+            st.markdown("**Error Log:**")
+            st.markdown(f"```\n{all_errors_text}\n```")
+            
+            # Copy button using the new component
+            copy_to_clipboard_button(all_errors_text, "📋 Copy All Errors", key="global_errors_copy")
+            
+            # Action buttons
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("🗑️ Clear Errors", key="clear_errors"):
+                    st.session_state.error_logs = []
+                    st.session_state.show_error_details = False
+                    st.rerun()
+            
+            with col2:
+                if st.button("Hide Details", key="hide_errors_top"):
+                    st.session_state.show_error_details = False
+                    st.rerun()
+            
+            st.divider()
+
 # Progress dots
 progress_html = '<div class="progress-dots">'
 for i in range(1, 6):
@@ -466,6 +526,17 @@ elif st.session_state.current_stage == 2:
     st.markdown("## ⚙️ Data Processing")
     st.markdown("Extract and combine data from your uploaded files.")
     
+    # Get trackers
+    progress_tracker = get_progress_tracker()
+    
+    # Show any previous errors
+    if progress_tracker.get_stage_status('processing') == 'error':
+        st.error("⚠️ Previous processing attempt failed. Check the error log below.")
+        progress_tracker.render_global_error_log()
+        if st.button("🔄 Retry Processing", type="secondary"):
+            progress_tracker.clear_stage_progress('processing')
+            st.rerun()
+    
     if features['SMART_CACHING']:
         @st.cache_data(ttl=3600, show_spinner=False)
         def cached_process_data(planned_path, delivered_path, output_dir):
@@ -479,52 +550,148 @@ elif st.session_state.current_stage == 2:
             )
     
     def process_data():
-        """Process data with error handling"""
+        """Process data with enhanced progress tracking"""
         try:
             from production_workflow.utils.workflow_wrapper import WorkflowWrapper
             wrapper = WorkflowWrapper()
+            
+            # Initialize progress tracking
+            progress_tracker.start_stage_tracking('processing', 6)
+            progress_placeholder = st.empty()
             
             planned_path = st.session_state.uploaded_files.get("PLANNED")
             delivered_path = st.session_state.uploaded_files.get("DELIVERED")
             output_dir = Path(st.session_state.temp_dir) / "output"
             output_dir.mkdir(exist_ok=True)
             
-            with st.spinner("Processing your data..."):
-                if features['SMART_CACHING'] and 'cached_process_data' in globals():
-                    output_files = cached_process_data(planned_path, delivered_path, str(output_dir))
-                else:
-                    output_files = wrapper.extract_and_combine_data(
-                        planned_path=planned_path,
-                        delivered_path=delivered_path,
-                        output_dir=str(output_dir),
-                        combine=True
-                    )
+            # Progress steps
+            processing_steps = [
+                (0, "Initializing data extraction", "Preparing workspace"),
+                (1, "Reading Media Plan (PLANNED)", f"Loading {Path(planned_path).name}"),
+                (2, "Reading Platform Data (DELIVERED)", f"Loading {Path(delivered_path).name}"),
+                (3, "Extracting platform sections", "Processing DV360, META, and TIKTOK data"),
+                (4, "Combining data sources", "Merging PLANNED and DELIVERED data"),
+                (5, "Saving combined output", "Writing COMBINED Excel file")
+            ]
+            
+            # Update progress display
+            with progress_placeholder.container():
+                progress_tracker.update_progress('processing', 0, processing_steps[0][1], processing_steps[0][2])
+                progress_tracker.render_detailed_progress('processing')
+            
+            # Simulate progress updates during processing
+            def update_progress_during_processing():
+                for i, (step, task, detail) in enumerate(processing_steps[1:4], 1):
+                    time.sleep(0.5)
+                    with progress_placeholder.container():
+                        progress_tracker.update_progress('processing', i, task, detail)
+                        progress_tracker.render_detailed_progress('processing')
+            
+            # Start progress updates in background
+            import threading
+            progress_thread = threading.Thread(target=update_progress_during_processing)
+            progress_thread.start()
+            
+            # Actual processing
+            start_time = time.time()
+            if features['SMART_CACHING'] and 'cached_process_data' in globals():
+                output_files = cached_process_data(planned_path, delivered_path, str(output_dir))
+            else:
+                output_files = wrapper.extract_and_combine_data(
+                    planned_path=planned_path,
+                    delivered_path=delivered_path,
+                    output_dir=str(output_dir),
+                    combine=True
+                )
+            
+            # Wait for progress thread
+            progress_thread.join()
+            
+            # Final progress updates
+            with progress_placeholder.container():
+                progress_tracker.update_progress('processing', 4, processing_steps[4][1], processing_steps[4][2])
+                progress_tracker.render_detailed_progress('processing')
+            
+            time.sleep(0.5)
+            
+            with progress_placeholder.container():
+                progress_tracker.update_progress('processing', 5, processing_steps[5][1], processing_steps[5][2])
+                progress_tracker.render_detailed_progress('processing')
+            
+            duration = time.time() - start_time
             
             st.session_state.workflow_data['combined_file'] = output_files.get('combined')
             st.session_state.workflow_data['output_dir'] = str(output_dir)
             
+            # Complete tracking with summary
+            if output_files.get('combined') and os.path.exists(output_files['combined']):
+                df = pd.read_excel(output_files['combined'])
+                progress_tracker.complete_stage('processing', {
+                    'Total Rows': f"{len(df):,}",
+                    'Total Columns': len(df.columns),
+                    'Platforms': len(df['Platform'].unique()) if 'Platform' in df else 'N/A',
+                    'Duration': f"{duration:.1f}s"
+                })
+            
             return output_files
+            
         except Exception as e:
-            st.error(f"Processing error: {str(e)}")
+            import traceback
+            error_details = traceback.format_exc()
+            progress_tracker.add_error('processing', f"Processing failed: {str(e)}", error_details)
+            
+            with progress_placeholder.container():
+                progress_tracker.render_detailed_progress('processing')
+            
+            st.error(f"❌ Processing error: {str(e)}")
+            
+            with st.expander("🔍 Error Details", expanded=True):
+                st.code(error_details)
+            
             return None
     
-    if st.button("Start Processing", type="primary"):
-        result = process_data()
+    # Show previous results if available
+    if progress_tracker.get_stage_status('processing') == 'completed':
+        st.success("✅ Processing already completed in this session")
+        progress_tracker.render_stage_summary('processing')
         
-        if result:
-            st.success("✅ Data processed successfully!")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🔄 Re-process Data", type="secondary"):
+                progress_tracker.clear_stage_progress('processing')
+                st.rerun()
+        with col2:
+            if st.button("➡️ Continue to Mapping", type="primary"):
+                st.session_state.current_stage = 3
+                st.rerun()
+    else:
+        # Start processing button
+        if st.button("🚀 Start Processing", type="primary", disabled=progress_tracker.get_stage_status('processing') == 'running'):
+            result = process_data()
             
-            # Show stats
-            if st.session_state.workflow_data.get('combined_file'):
-                df = pd.read_excel(st.session_state.workflow_data['combined_file'])
-                col1, col2, col3 = st.columns(3)
-                col1.metric("Rows", f"{len(df):,}")
-                col2.metric("Columns", len(df.columns))
-                col3.metric("Platforms", len(df['Platform'].unique()) if 'Platform' in df else 0)
+            if result:
+                st.success("✅ Data processed successfully!")
+                
+                # Show summary
+                progress_tracker.render_stage_summary('processing')
+                
+                # Auto-advance after brief pause
+                time.sleep(2)
+                st.session_state.current_stage = 3
+                st.rerun()
+        
+        # Show info about the process
+        with st.expander("ℹ️ What happens during processing?", expanded=False):
+            st.markdown("""
+            **The processing stage includes:**
+            1. **Media Plan Loading** - Extract data from PLANNED file with START/END markers
+            2. **Platform Data Loading** - Extract DELIVERED data from platforms
+            3. **Section Extraction** - Identify DV360, META, and TIKTOK sections
+            4. **Data Combination** - Merge PLANNED and DELIVERED data intelligently
+            5. **Output Generation** - Create COMBINED Excel file for mapping
             
-            time.sleep(1)
-            st.session_state.current_stage = 3
-            st.rerun()
+            **Expected Duration:** 10-30 seconds depending on file size
+            """)
 
 elif st.session_state.current_stage == 3:
     st.markdown("## 🗺️ Template Mapping")
@@ -645,12 +812,32 @@ elif st.session_state.current_stage == 3:
             with progress_placeholder.container():
                 mapping_tracker.render_mapping_progress()
             
-            # Show user-friendly error
-            st.error(f"❌ Mapping error: {str(e)}")
+            # Create error report
+            error_report_text = f"""=== MAPPING ERROR REPORT ===
+Time: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+Stage: Template Mapping
+Error: {str(e)}
+
+Stack Trace:
+{error_details}
+
+Environment:
+- Combined File: {combined_file}
+- Template File: {template_path}
+- Output File: {output_file}
+- AI Mapping Enabled: {st.session_state.get('enable_llm_mapping', True)}
+"""
             
-            # Show detailed error in expander
-            with st.expander("🔍 Error Details", expanded=True):
-                st.code(error_details)
+            # Use the error display component
+            error_display_with_copy("Mapping Failed", error_report_text, key="mapping_error")
+            
+            # Show quick fixes if applicable
+            if "API" in str(e) or "api" in str(e):
+                st.info("💡 **Possible Fix:** Check your API key configuration in the sidebar")
+            elif "file" in str(e).lower() or "path" in str(e).lower():
+                st.info("💡 **Possible Fix:** Ensure all files are properly uploaded and accessible")
+            elif "timeout" in str(e).lower():
+                st.info("💡 **Possible Fix:** The AI processing timed out. Try again or contact support")
             
             return None
     
@@ -708,52 +895,177 @@ elif st.session_state.current_stage == 4:
     st.markdown("## ✓ Data Validation")
     st.markdown("Validate the accuracy and completeness of your mapped data.")
     
+    # Get trackers
+    progress_tracker = get_progress_tracker()
+    
+    # Show any previous errors
+    if progress_tracker.get_stage_status('validation') == 'error':
+        st.error("⚠️ Previous validation attempt failed. Check the error log below.")
+        progress_tracker.render_global_error_log()
+        if st.button("🔄 Retry Validation", type="secondary"):
+            progress_tracker.clear_stage_progress('validation')
+            st.rerun()
+    
     def validate_data():
-        """Validate data"""
+        """Validate data with enhanced progress tracking"""
         try:
             from production_workflow.utils.workflow_wrapper import WorkflowWrapper
             wrapper = WorkflowWrapper()
             
+            # Initialize progress tracking
+            progress_tracker.start_stage_tracking('validation', 5)
+            progress_placeholder = st.empty()
+            
             mapped_file = st.session_state.workflow_data.get('mapped_file')
             combined_file = st.session_state.workflow_data.get('combined_file')
             
-            with st.spinner("Validating data..."):
-                validation_results = wrapper.validate_data(
-                    mapped_file=mapped_file,
-                    source_file=combined_file
-                )
+            # Validation steps
+            validation_steps = [
+                (0, "Loading mapped data", f"Reading {Path(mapped_file).name}"),
+                (1, "Loading source data", f"Reading {Path(combined_file).name}"),
+                (2, "Checking data completeness", "Verifying all required fields are populated"),
+                (3, "Validating data accuracy", "Comparing mapped values against source"),
+                (4, "Generating validation report", "Creating detailed validation metrics")
+            ]
+            
+            # Update progress display
+            with progress_placeholder.container():
+                progress_tracker.update_progress('validation', 0, validation_steps[0][1], validation_steps[0][2])
+                progress_tracker.render_detailed_progress('validation')
+            
+            # Simulate progress updates during validation
+            def update_progress_during_validation():
+                for i, (step, task, detail) in enumerate(validation_steps[1:4], 1):
+                    time.sleep(0.5)
+                    with progress_placeholder.container():
+                        progress_tracker.update_progress('validation', i, task, detail)
+                        progress_tracker.render_detailed_progress('validation')
+            
+            # Start progress updates in background
+            import threading
+            progress_thread = threading.Thread(target=update_progress_during_validation)
+            progress_thread.start()
+            
+            # Actual validation
+            start_time = time.time()
+            validation_results = wrapper.validate_data(
+                mapped_file=mapped_file,
+                source_file=combined_file
+            )
+            duration = time.time() - start_time
+            
+            # Wait for progress thread
+            progress_thread.join()
+            
+            # Final progress update
+            with progress_placeholder.container():
+                progress_tracker.update_progress('validation', 4, validation_steps[4][1], validation_steps[4][2])
+                progress_tracker.render_detailed_progress('validation')
             
             st.session_state.workflow_data['validation_results'] = validation_results
-            return validation_results
-        except Exception as e:
-            st.error(f"Validation error: {str(e)}")
-            return None
-    
-    if st.button("Run Validation", type="primary"):
-        validation_results = validate_data()
-        
-        if validation_results:
+            
+            # Complete tracking with summary
             errors = validation_results.get('errors', [])
             warnings = validation_results.get('warnings', [])
+            accuracy = validation_results.get('passed_checks', 0) / max(validation_results.get('total_checks', 1), 1) * 100
             
-            if not errors:
-                st.success("✅ All validation checks passed!")
-            else:
-                st.error(f"Found {len(errors)} errors")
+            progress_tracker.complete_stage('validation', {
+                'Total Checks': validation_results.get('total_checks', 0),
+                'Passed': validation_results.get('passed_checks', 0),
+                'Errors': len(errors),
+                'Warnings': len(warnings),
+                'Accuracy': f"{accuracy:.0f}%",
+                'Duration': f"{duration:.1f}s"
+            })
             
-            # Show metrics
-            col1, col2, col3 = st.columns(3)
-            col1.metric("Total Checks", validation_results.get('total_checks', 0))
-            col2.metric("Passed", validation_results.get('passed_checks', 0))
-            col3.metric("Accuracy", f"{(validation_results.get('passed_checks', 0) / max(validation_results.get('total_checks', 1), 1) * 100):.0f}%")
+            return validation_results
             
-            if features['ENHANCED_VALIDATION'] and 'enhanced_validation_dashboard' in loaded_features:
-                with st.expander("Detailed Results"):
-                    loaded_features['enhanced_validation_dashboard'].render_dashboard(validation_results, st.session_state.workflow_data)
+        except Exception as e:
+            import traceback
+            error_details = traceback.format_exc()
+            progress_tracker.add_error('validation', f"Validation failed: {str(e)}", error_details)
             
-            time.sleep(1)
-            st.session_state.current_stage = 5
-            st.rerun()
+            with progress_placeholder.container():
+                progress_tracker.render_detailed_progress('validation')
+            
+            st.error(f"❌ Validation error: {str(e)}")
+            
+            with st.expander("🔍 Error Details", expanded=True):
+                st.code(error_details)
+            
+            return None
+    
+    # Show previous results if available
+    if progress_tracker.get_stage_status('validation') == 'completed':
+        st.success("✅ Validation already completed in this session")
+        progress_tracker.render_stage_summary('validation')
+        
+        validation_results = st.session_state.workflow_data.get('validation_results', {})
+        errors = validation_results.get('errors', [])
+        warnings = validation_results.get('warnings', [])
+        
+        # Show errors/warnings if any
+        if errors:
+            with st.expander(f"❌ Errors ({len(errors)})", expanded=True):
+                for error in errors[:5]:  # Show first 5 errors
+                    st.error(error)
+                if len(errors) > 5:
+                    st.caption(f"... and {len(errors) - 5} more errors")
+        
+        if warnings:
+            with st.expander(f"⚠️ Warnings ({len(warnings)})", expanded=False):
+                for warning in warnings[:5]:  # Show first 5 warnings
+                    st.warning(warning)
+                if len(warnings) > 5:
+                    st.caption(f"... and {len(warnings) - 5} more warnings")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🔄 Re-validate", type="secondary"):
+                progress_tracker.clear_stage_progress('validation')
+                st.rerun()
+        with col2:
+            if st.button("➡️ Continue to Download", type="primary"):
+                st.session_state.current_stage = 5
+                st.rerun()
+    else:
+        # Start validation button
+        if st.button("🚀 Run Validation", type="primary", disabled=progress_tracker.get_stage_status('validation') == 'running'):
+            validation_results = validate_data()
+            
+            if validation_results:
+                errors = validation_results.get('errors', [])
+                
+                if not errors:
+                    st.success("✅ All validation checks passed!")
+                else:
+                    st.error(f"Found {len(errors)} errors")
+                
+                # Show summary
+                progress_tracker.render_stage_summary('validation')
+                
+                # Show enhanced validation dashboard if available
+                if features['ENHANCED_VALIDATION'] and 'enhanced_validation_dashboard' in loaded_features:
+                    with st.expander("📊 Detailed Validation Results", expanded=True):
+                        loaded_features['enhanced_validation_dashboard'].render_dashboard(validation_results, st.session_state.workflow_data)
+                
+                # Auto-advance after brief pause
+                time.sleep(2)
+                st.session_state.current_stage = 5
+                st.rerun()
+        
+        # Show info about the process
+        with st.expander("ℹ️ What happens during validation?", expanded=False):
+            st.markdown("""
+            **The validation stage includes:**
+            1. **Data Loading** - Load both mapped output and source data
+            2. **Completeness Check** - Verify all required fields are populated
+            3. **Accuracy Check** - Compare mapped values against source data
+            4. **Consistency Check** - Ensure data formats and values are consistent
+            5. **Report Generation** - Create detailed validation metrics
+            
+            **Expected Duration:** 5-15 seconds depending on data size
+            """)
 
 elif st.session_state.current_stage == 5:
     st.markdown("## 🎉 Complete!")
