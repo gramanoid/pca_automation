@@ -362,9 +362,19 @@ with st.sidebar:
         st.warning("⚠️ AI mapping disabled - using basic rules")
     
     # Progress
-    progress = (st.session_state.current_stage - 1) / 5
+    # Calculate progress - show 100% when on step 5 and it's completed
+    if st.session_state.current_stage == 5 and st.session_state.stage_status.get(5) == 'completed':
+        progress = 1.0
+    else:
+        progress = min((st.session_state.current_stage - 1) / 4, 1.0)  # Divided by 4 to reach 100% at step 5
+    
     st.progress(progress)
-    st.caption(f"Step {st.session_state.current_stage} of 5")
+    
+    # Update caption based on completion
+    if progress == 1.0:
+        st.caption("✅ All steps completed!")
+    else:
+        st.caption(f"Step {st.session_state.current_stage} of 5")
     
     st.divider()
     
