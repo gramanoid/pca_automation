@@ -555,3 +555,5 @@ This simplified approach achieves 96-98% accuracy by:
 4. Focusing on what actually moves the needle
 
 **Result**: Higher accuracy with 80% less complexity.
+# CodeRabbit Test
+This is a test to trigger CodeRabbit.
