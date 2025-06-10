@@ -251,6 +251,8 @@ if 'file_validation' not in st.session_state:
     st.session_state.file_validation = {}
 if 'feature_status' not in st.session_state:
     st.session_state.feature_status = {}
+if 'stage_status' not in st.session_state:
+    st.session_state.stage_status = {}
 
 # All features enabled by default
 features = {
@@ -318,10 +320,16 @@ with st.sidebar:
     
     stages = ["📤 Upload", "⚙️ Process", "🗺️ Map", "✓ Validate", "📥 Download"]
     for i, stage in enumerate(stages, 1):
-        if i < st.session_state.current_stage:
+        # Check if stage is completed
+        is_completed = st.session_state.stage_status.get(i, False) == 'completed'
+        
+        if is_completed:
             st.success(f"~~{stage}~~", icon="✅")
         elif i == st.session_state.current_stage:
             st.info(f"**{stage}**", icon="▶")
+        elif i < st.session_state.current_stage:
+            # If we're past this stage but it's not marked complete, mark it
+            st.success(f"~~{stage}~~", icon="✅")
         else:
             st.markdown(f"🔘 {stage}")
     
@@ -334,7 +342,22 @@ with st.sidebar:
     # Show AI model info when enabled
     if ai_enabled:
         st.info("🤖 **AI Model:** Gemini 2.5 Pro via OpenRouter")
-        st.caption("Used for intelligent column mapping")
+        with st.expander("What does AI mapping do?", expanded=False):
+            st.markdown("""
+            **Currently, the AI mapping infrastructure is configured but the actual implementation uses rule-based mapping.**
+            
+            **Planned AI capabilities:**
+            - 🧠 Understand semantic meaning of column names
+            - 🔄 Handle variations (e.g., "Budget" vs "Spend" vs "Cost")
+            - 🎯 Map complex relationships between fields
+            - 📊 Learn from previous mappings
+            
+            **Current implementation:**
+            - ✅ Rule-based exact column matching
+            - ✅ Platform-specific data extraction (DV360, META, TIKTOK)
+            - ✅ Hardcoded mapping rules for known columns
+            - ✅ 100% accuracy for expected column names
+            """)
     else:
         st.warning("⚠️ AI mapping disabled - using basic rules")
     
@@ -537,6 +560,7 @@ if st.session_state.current_stage == 1:
     
     if all_uploaded and all_valid:
         if st.button("Continue to Processing →", type="primary", use_container_width=False):
+            st.session_state.stage_status[1] = 'completed'
             st.session_state.current_stage = 2
             st.rerun()
     else:
@@ -704,6 +728,9 @@ elif st.session_state.current_stage == 2:
                 # Show summary
                 progress_tracker.render_stage_summary('processing')
                 
+                # Mark stage as completed
+                st.session_state.stage_status[2] = 'completed'
+                
                 # Auto-advance after brief pause
                 time.sleep(2)
                 st.session_state.current_stage = 3
@@ -725,13 +752,21 @@ elif st.session_state.current_stage == 2:
 elif st.session_state.current_stage == 3:
     st.markdown("## 🗺️ Template Mapping")
     
-    # Show AI status
+    # Show mapping status
     if st.session_state.get('enable_llm_mapping', True):
-        st.markdown("Map your combined data to the output template using **AI-powered intelligent mapping**.")
-        st.success("🤖 **Gemini 2.5 Pro** is active and will intelligently match columns between your data sources")
+        st.markdown("Map your combined data to the output template.")
+        st.info("""
+        🤖 **AI Mapping Status:** Infrastructure ready, but currently using enhanced rule-based mapping
+        
+        **What actually happens:**
+        - Platform sections (DV360, META, TIKTOK) are identified by exact coordinates
+        - Column mappings use predefined rules for 50+ known column names
+        - Calculations for metrics like CPM, CTR%, and Reach% are hardcoded
+        - 100% mapping coverage through deterministic rules
+        """)
     else:
         st.markdown("Map your combined data to the output template using **rule-based mapping**.")
-        st.warning("⚠️ AI mapping is disabled. Using basic column name matching only.")
+        st.warning("⚠️ Using basic column name matching only.")
     
     # Get trackers
     progress_tracker = get_progress_tracker()
@@ -902,6 +937,9 @@ Environment:
                 
                 # Show summary
                 mapping_tracker.render_stage_summary('mapping')
+                
+                # Mark stage as completed
+                st.session_state.stage_status[3] = 'completed'
                 
                 # Auto-advance after brief pause
                 time.sleep(2)
@@ -1103,6 +1141,9 @@ elif st.session_state.current_stage == 4:
                     with st.expander("📊 Detailed Validation Results", expanded=True):
                         loaded_features['enhanced_validation_dashboard'].render_dashboard(validation_results, st.session_state.workflow_data)
                 
+                # Mark stage as completed
+                st.session_state.stage_status[4] = 'completed'
+                
                 # Auto-advance after brief pause
                 time.sleep(2)
                 st.session_state.current_stage = 5
@@ -1124,6 +1165,11 @@ elif st.session_state.current_stage == 4:
 elif st.session_state.current_stage == 5:
     st.markdown("## 🎉 Complete!")
     st.success("Your data has been successfully processed and is ready for download.")
+    
+    # Mark the Download stage as completed in sidebar
+    if 'stage_status' not in st.session_state:
+        st.session_state.stage_status = {}
+    st.session_state.stage_status[5] = 'completed'
     
     # Download section
     mapped_file = st.session_state.workflow_data.get('mapped_file')
