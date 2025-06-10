@@ -42,6 +42,8 @@ if 'file_validation' not in st.session_state:
     st.session_state.file_validation = {}
 if 'feature_status' not in st.session_state:
     st.session_state.feature_status = {}
+if 'stage_status' not in st.session_state:
+    st.session_state.stage_status = {}
 
 # Feature selection in sidebar
 with st.sidebar:
@@ -77,6 +79,21 @@ with st.sidebar:
 # Load features based on selections
 loaded_features = {}
 
+# Show feature loading status in expander for debugging
+if any(features.values()):
+    with st.sidebar.expander("🔧 Feature Loading Status", expanded=False):
+        for feature_name, enabled in features.items():
+            if enabled:
+                status = st.session_state.feature_status.get(feature_name, {})
+                if status.get('loaded'):
+                    st.success(f"✅ {feature_name}")
+                elif status.get('error'):
+                    st.error(f"❌ {feature_name}")
+                    if status.get('traceback'):
+                        st.code(status['traceback'], language='python')
+                else:
+                    st.info(f"⏳ {feature_name}")
+
 # Try to load each enabled feature
 if features['FILE_VALIDATION']:
     try:
@@ -93,7 +110,13 @@ if features['PROGRESS_PERSISTENCE']:
         loaded_features['progress_display'] = ProgressDisplay(STAGES)
         st.session_state.feature_status['PROGRESS_PERSISTENCE'] = {'loaded': True}
     except Exception as e:
-        st.session_state.feature_status['PROGRESS_PERSISTENCE'] = {'loaded': False, 'error': str(e)}
+        import traceback
+        st.session_state.feature_status['PROGRESS_PERSISTENCE'] = {
+            'loaded': False, 
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }
+        st.error(f"Failed to load Progress Display: {str(e)}")
 
 if features['ENHANCED_VALIDATION']:
     try:
@@ -137,8 +160,19 @@ with st.sidebar:
     st.header("Navigation")
     stages = ["1. Data Upload", "2. Data Processing", "3. Template Mapping", "4. Validation", "5. Results"]
     
-    if features['PROGRESS_PERSISTENCE'] and 'progress_display' in loaded_features:
-        loaded_features['progress_display'].render_sidebar_progress()
+    if features['PROGRESS_PERSISTENCE'] and 'progress_display' in loaded_features and loaded_features['progress_display'] is not None:
+        try:
+            loaded_features['progress_display'].render_sidebar_progress()
+        except Exception as e:
+            st.error(f"Progress display error: {str(e)}")
+            # Fallback to simple progress display
+            for i, stage in enumerate(stages, 1):
+                if i < st.session_state.current_stage:
+                    st.success(f"✅ {stage}")
+                elif i == st.session_state.current_stage:
+                    st.info(f"▶️ {stage}")
+                else:
+                    st.text(f"⏸️ {stage}")
     else:
         # Simple progress display
         for i, stage in enumerate(stages, 1):

@@ -1,0 +1,286 @@
+Product Requirements Document (PRD)
+===================================
+
+Project: Planned vs Delivered Automation System
+Version: 2.0
+Date: January 2025
+
+1. Executive Summary
+-------------------
+The Planned vs Delivered Automation System is an enterprise-grade solution that automates the reconciliation of media planning data with actual delivery reports. It eliminates manual Excel data processing, reducing hours of error-prone work to seconds while maintaining 100% accuracy. The system processes data from multiple advertising platforms (DV360, META, TikTok) across multiple markets, providing standardized output reports for performance analysis.
+
+2. Problem Statement
+-------------------
+Media agencies currently spend hours manually comparing planned media campaigns with delivered results across multiple platforms and markets. This process involves:
+- Manual copy-paste operations between different Excel formats
+- High risk of human error in data mapping
+- Inconsistent data formats between platforms
+- Time-consuming validation processes
+- Lack of audit trails and error recovery
+
+3. Goals and Objectives
+----------------------
+Primary Goals:
+- Reduce processing time from hours to under 5 seconds
+- Achieve 100% data coverage and mapping accuracy
+- Eliminate manual errors in data reconciliation
+- Provide comprehensive validation and audit trails
+- Enable both technical and non-technical users
+
+Success Metrics:
+- 100% column mapping coverage
+- < 5 second processing time for standard datasets
+- Zero data loss or corruption
+- 99.9% accuracy in calculations
+- User adoption rate > 80%
+
+4. Target Users
+--------------
+Primary Users:
+- Media Analysts: Process campaign performance data
+- Campaign Managers: Review variance reports
+- Account Managers: Generate client reports
+- Data Engineers: Deploy and maintain the system
+
+User Personas:
+- Non-technical users who need web interface
+- Technical users who prefer command-line automation
+- IT administrators who deploy the system
+
+5. Core Features and Requirements
+--------------------------------
+
+5.1 Data Processing Engine
+- Automatic format detection for PLANNED and DELIVERED files
+- Support for 3 platforms: DV360, META, TikTok
+- Dynamic handling of up to 6 markets
+- Special processing for Reach & Frequency metrics
+- Platform alias resolution (e.g., YOUTUBE → DV360)
+- Region detection using START/END markers
+
+5.2 Intelligent Mapping System
+- Two-pass mapping: Memory lookup then LLM enhancement
+- JSON-based configuration for client rules
+- Learning system that improves over time
+- 100% column coverage guarantee
+- Fallback mechanisms for unknown mappings
+
+5.3 Validation Framework
+- Multi-level validation: cell, row, section, total
+- Business rule enforcement
+- Calculation verification (CTR, CPM, CPC)
+- Comprehensive diff reporting
+- Number precision handling
+
+5.4 User Interfaces
+- Web Interface (Streamlit):
+  * Drag-and-drop file upload
+  * Real-time progress tracking
+  * Interactive validation dashboard
+  * Download results with one click
+- Command Line Interface:
+  * Batch processing support
+  * Scriptable automation
+  * Detailed logging options
+
+5.5 Production Features
+- Error recovery and retry mechanisms
+- Performance monitoring
+- Deployment packaging
+- Configuration management
+- Audit trail generation
+
+6. Technical Requirements
+------------------------
+
+6.1 Platform Requirements
+- Python 3.8 or higher
+- Windows/Linux/MacOS support
+- 4GB RAM minimum
+- 1GB disk space
+
+6.2 Dependencies
+- pandas for data manipulation
+- openpyxl for Excel operations
+- Streamlit for web interface
+- Optional: Claude API for enhanced mapping
+
+6.3 Performance Requirements
+- Process standard dataset in < 5 seconds
+- Handle files up to 100MB
+- Support concurrent users (web interface)
+- Maintain sub-second response times
+
+6.4 Security Requirements
+- No data persistence beyond session
+- API key encryption
+- Secure file handling
+- No external data transmission (except optional LLM)
+
+7. Functional Specifications
+---------------------------
+
+7.1 Input Processing
+- Accept 3 Excel files: PLANNED, DELIVERED, OUTPUT_TEMPLATE
+- Validate file formats and structures
+- Detect data regions automatically
+- Handle missing or malformed data
+
+7.2 Data Transformation
+- Extract PLANNED data with marker detection
+- Extract DELIVERED data with R&F normalization
+- Combine into unified format
+- Apply client-specific mapping rules
+
+7.3 Output Generation
+- Populate template with 100% data coverage
+- Maintain original template formatting
+- Generate validation reports
+- Create performance metrics
+
+7.4 Error Handling
+- Graceful degradation for partial failures
+- Clear error messages for users
+- Recovery suggestions
+- Detailed error logs
+
+8. User Experience Requirements
+------------------------------
+
+8.1 Web Interface
+- Intuitive 3-step workflow
+- Progress indicators at each stage
+- Clear success/failure feedback
+- One-click download of results
+- Responsive design for different screens
+
+8.2 Command Line
+- Clear command syntax
+- Help documentation
+- Progress output
+- Exit codes for automation
+
+8.3 Documentation
+- User guide with screenshots
+- Technical documentation
+- Troubleshooting guide
+- Video tutorials
+
+9. Integration Requirements
+--------------------------
+- Standalone operation (no dependencies on external systems)
+- Optional Claude API integration
+- Excel file compatibility (2007+)
+- Cross-platform file paths
+- Environment variable configuration
+
+10. Testing Requirements
+-----------------------
+- Unit tests for all core functions
+- Integration tests for workflows
+- Regression test suite (29 tests)
+- Performance benchmarks
+- User acceptance testing
+
+11. Deployment Requirements
+--------------------------
+- Single-file deployment option
+- Docker containerization
+- Configuration templates
+- Installation guides
+- Update mechanisms
+
+12. Future Enhancements
+----------------------
+Phase 2 Features:
+- Machine learning for improved mapping
+- Real-time collaboration features
+- API endpoints for integration
+- Custom report templates
+- Historical trend analysis
+
+Phase 3 Features:
+- Multi-language support
+- Cloud deployment options
+- Advanced analytics dashboard
+- Automated scheduling
+- Custom validation rules
+
+13. Constraints and Assumptions
+------------------------------
+Constraints:
+- Must work with existing Excel formats
+- Cannot modify source files
+- Must maintain Excel compatibility
+- Limited to 3 specific platforms
+
+Assumptions:
+- Users have basic Excel knowledge
+- Files follow expected formats
+- Python environment available
+- Sufficient system resources
+
+14. Success Criteria
+-------------------
+- All 36 data columns mapped successfully
+- Processing time under 5 seconds
+- Zero data loss or corruption
+- Positive user feedback (>4/5 rating)
+- Successful deployment in production
+
+15. Recent Updates and Enhancements (January 2025)
+-------------------------------------------------
+
+15.1 Streamlit Deployment Issues Resolved
+- Fixed dynamic import errors preventing Streamlit Cloud deployment
+- Resolved nested expander UI components issue
+- Fixed text_area minimum height requirements (68px minimum)
+- Created multiple app versions for progressive testing
+
+15.2 Multi-Version Architecture Implemented
+- streamlit_app_simple.py: Minimal core functionality with lazy loading
+- streamlit_app_debug.py: Component testing and diagnostics
+- streamlit_app_gradual.py: Feature flags via environment variables
+- streamlit_app_interactive.py: Checkbox-based feature selection (no env vars)
+- streamlit_app_fixed.py: Production version with navigation fixes
+
+15.3 Enhanced User Experience Features
+- Interactive feature selection in sidebar
+- Real-time feature loading status
+- Fixed Stage 5 navigation issue (validation → download → results)
+- Combined validation and download in Stage 4 for seamless workflow
+
+15.4 Phase 2 Features Implemented
+- Enhanced Validation Dashboard:
+  * Multi-tab interface with drill-down capabilities
+  * Interactive charts using plotly
+  * Tabs: Overview, Detailed Results, Trends, Issue Drill-Down, Recommendations
+  * Real-time validation metrics visualization
+  
+- Intelligent Error Recovery:
+  * Context-aware error analysis
+  * Categorized error types with specific solutions
+  * One-click auto-fix options
+  * Detailed recovery suggestions
+
+15.5 Technical Improvements
+- Lazy loading for heavy dependencies
+- Session state management optimization
+- Python 3.13 compatibility considerations
+- Modular component architecture
+- Improved error handling patterns
+
+15.6 Current Deployment Status
+- Default version: streamlit_app_fixed.py (production-ready)
+- All core features functional
+- Enhanced features available via interactive selection
+- Streamlit Cloud deployment successful
+
+16. Appendices
+-------------
+- Sample input/output files
+- Mapping rules documentation
+- API documentation
+- Performance benchmarks
+- User feedback summary
+- Deployment troubleshooting guide

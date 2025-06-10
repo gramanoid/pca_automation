@@ -1,0 +1,125 @@
+# Example Debug Output from Interactive Debug Version
+
+## What you would see in the Streamlit app:
+
+### Main Screen:
+📊 PCA Automation (Debug Mode)
+================================
+
+### Sidebar:
+🎛️ Feature Selection
+[✓] 🐛 Debug Mode (Show detailed error information)
+────────────────────
+[ ] 📊 Data Preview
+[✓] ✅ File Validation  <-- Let's test this one
+[ ] 📈 Progress Tracking
+[ ] ⚡ Smart Caching
+[ ] 🔧 Error Recovery
+[ ] 📉 Enhanced Validation
+
+Feature Status:
+❌ File Validation
+[Show error ▼]
+
+Error: No module named 'ui_components.file_upload'
+
+[Full traceback ▼]
+Traceback (most recent call last):
+  File "streamlit_app_interactive_debug.py", line 84, in <module>
+    from ui_components.file_upload import FileUploadComponent
+ModuleNotFoundError: No module named 'ui_components.file_upload'
+
+### Debug Log (Expanded):
+[14:23:15.123] [INFO] Starting feature loading...
+[14:23:15.125] [INFO] Attempting to load FILE_VALIDATION feature...
+[14:23:15.130] [ERROR] FILE_VALIDATION failed: No module named 'ui_components.file_upload'
+[14:23:15.131] [ERROR] Traceback: Traceback (most recent call last):
+  File "streamlit_app_interactive_debug.py", line 84, in <module>
+    from ui_components.file_upload import FileUploadComponent
+ModuleNotFoundError: No module named 'ui_components.file_upload'
+
+[Clear Log] [Export Log]
+
+### System Information:
+Python Version: 3.12.3 (main, Nov  6 2024, 18:32:19) [GCC 13.2.0]
+Streamlit Version: 1.45.1
+Working Directory: /mnt/c/Users/alexg/OneDrive - Publicis Groupe/Desktop/Work Hub/Work Projects/Work GIT/Planned vs Delivered Automation/Media Plan to Raw Data
+
+Platform: linux
+Python Path (first 3):
+- /mnt/c/Users/alexg/OneDrive - Publicis Groupe/Desktop/Work Hub/Work Projects/Work GIT/Planned vs Delivered Automation/Media Plan to Raw Data
+- /usr/lib/python312.zip
+- /usr/lib/python3.12
+
+## What you would see in the terminal:
+
+You can now view your Streamlit app in your browser.
+
+  Local URL: http://localhost:8501
+  Network URL: http://192.168.1.100:8501
+
+  For better performance, install the Watchdog module:
+
+  $ xcode-select --install
+  $ pip install watchdog
+
+2024-06-01 14:23:15.000 Debug mode enabled for PCA Automation
+2024-06-01 14:23:15.123 Starting feature loading...
+2024-06-01 14:23:15.125 Attempting to load FILE_VALIDATION feature...
+2024-06-01 14:23:15.130 ERROR: Failed to import ui_components.file_upload
+2024-06-01 14:23:15.131 ModuleNotFoundError: No module named 'ui_components.file_upload'
+
+## Common Errors You Might See:
+
+1. Import Errors:
+   - ModuleNotFoundError: No module named 'plotly'
+   - ImportError: cannot import name 'FileUploadComponent' from 'ui_components.file_upload'
+
+2. Streamlit-specific Errors:
+   - StreamlitAPIException: st.session_state.foo cannot be modified after the widget with key "foo" is instantiated
+   - DuplicateWidgetID: There are multiple identical st.button widgets with the same generated key
+
+3. File System Errors:
+   - FileNotFoundError: [Errno 2] No such file or directory: 'ui_components/__init__.py'
+   - PermissionError: [Errno 13] Permission denied: '/tmp/pca_automation_xyz'
+
+4. Memory/Resource Errors:
+   - MemoryError: Unable to allocate array with shape (10000000, 100)
+   - OSError: [Errno 28] No space left on device
+
+## The Export Log Feature Would Create:
+
+{
+  "timestamp": "2024-06-01T14:23:15.000Z",
+  "debug_entries": [
+    {
+      "time": "14:23:15.123",
+      "level": "INFO",
+      "message": "Starting feature loading..."
+    },
+    {
+      "time": "14:23:15.125",
+      "level": "INFO", 
+      "message": "Attempting to load FILE_VALIDATION feature..."
+    },
+    {
+      "time": "14:23:15.130",
+      "level": "ERROR",
+      "message": "FILE_VALIDATION failed: No module named 'ui_components.file_upload'",
+      "traceback": "Traceback (most recent call last):\n  File \"streamlit_app_interactive_debug.py\", line 84, in <module>\n    from ui_components.file_upload import FileUploadComponent\nModuleNotFoundError: No module named 'ui_components.file_upload'"
+    }
+  ],
+  "feature_status": {
+    "FILE_VALIDATION": {
+      "loaded": false,
+      "error": "No module named 'ui_components.file_upload'",
+      "timestamp": "14:23:15.130"
+    }
+  },
+  "system_info": {
+    "python_version": "3.12.3",
+    "streamlit_version": "1.45.1",
+    "platform": "linux",
+    "working_directory": "/mnt/c/Users/alexg/OneDrive - Publicis Groupe/Desktop/Work Hub/Work Projects/Work GIT/Planned vs Delivered Automation/Media Plan to Raw Data"
+  }
+}
