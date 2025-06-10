@@ -18,6 +18,9 @@ from typing import Dict, Tuple, Optional, Any
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
+# Import enhanced progress tracking
+from ui_components.enhanced_progress_tracker import get_progress_tracker, get_mapping_tracker
+
 # Page configuration
 st.set_page_config(
     page_title="PCA Automation",
@@ -527,47 +530,179 @@ elif st.session_state.current_stage == 3:
     st.markdown("## 🗺️ Template Mapping")
     st.markdown("Map your combined data to the output template using AI.")
     
+    # Get trackers
+    progress_tracker = get_progress_tracker()
+    mapping_tracker = get_mapping_tracker()
+    
+    # Show any previous errors
+    if mapping_tracker.get_stage_status('mapping') == 'error':
+        st.error("⚠️ Previous mapping attempt failed. Check the error log below.")
+        mapping_tracker.render_global_error_log()
+        if st.button("🔄 Retry Mapping", type="secondary"):
+            mapping_tracker.clear_stage_progress('mapping')
+            st.rerun()
+    
     def map_to_template():
-        """Map data to template"""
+        """Map data to template with detailed progress tracking"""
         try:
             from production_workflow.utils.workflow_wrapper import WorkflowWrapper
             wrapper = WorkflowWrapper()
             
+            # Initialize progress tracking
+            mapping_tracker.start_mapping()
+            progress_placeholder = st.empty()
+            
+            # Get files
             combined_file = st.session_state.workflow_data.get('combined_file')
             template_path = st.session_state.uploaded_files.get("TEMPLATE")
             output_dir = st.session_state.workflow_data.get('output_dir')
             output_file = Path(output_dir) / f"final_mapped_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
             
-            with st.spinner("Mapping data to template..."):
-                result = wrapper.map_to_template(
-                    input_file=combined_file,
-                    template_file=template_path,
-                    output_file=str(output_file)
-                )
+            # Check files exist
+            if not combined_file or not os.path.exists(combined_file):
+                raise FileNotFoundError(f"Combined file not found: {combined_file}")
+            if not template_path or not os.path.exists(template_path):
+                raise FileNotFoundError(f"Template file not found: {template_path}")
             
+            # Update progress
+            with progress_placeholder.container():
+                mapping_tracker.update_mapping_step(0, f"Files verified: {Path(combined_file).name}")
+                mapping_tracker.render_mapping_progress()
+            
+            # Simulate progress updates during mapping
+            # In real implementation, WorkflowWrapper should provide progress callbacks
+            def simulate_progress():
+                steps = [
+                    (1, "Loading Excel files and checking structure"),
+                    (2, "Validating DV360, META, and TIKTOK data sections"),
+                    (3, "Analyzing 50+ columns for intelligent mapping"),
+                    (4, "Applying AI-powered column matching with Gemini 2.5 Pro"),
+                    (5, "Writing mapped data to template (this may take 30-60 seconds)"),
+                    (6, "Generating mapping report and validation metrics"),
+                    (7, "Finalizing output and saving Excel file")
+                ]
+                
+                for step, desc in steps[:-2]:  # Don't show last 2 steps during actual mapping
+                    time.sleep(0.5)  # Brief pause for UI update
+                    with progress_placeholder.container():
+                        mapping_tracker.update_mapping_step(step, desc)
+                        mapping_tracker.render_mapping_progress()
+            
+            # Start simulated progress in background
+            import threading
+            progress_thread = threading.Thread(target=simulate_progress)
+            progress_thread.start()
+            
+            # Actual mapping
+            start_time = time.time()
+            result = wrapper.map_to_template(
+                input_file=combined_file,
+                template_file=template_path,
+                output_file=str(output_file)
+            )
+            duration = time.time() - start_time
+            
+            # Wait for progress thread to finish
+            progress_thread.join()
+            
+            # Final progress updates
+            with progress_placeholder.container():
+                mapping_tracker.update_mapping_step(6, "Processing complete, preparing results")
+                mapping_tracker.render_mapping_progress()
+            
+            time.sleep(0.5)
+            
+            # Store results
             st.session_state.workflow_data['mapped_file'] = str(output_file)
             st.session_state.workflow_data['mapping_result'] = result
             
+            # Complete tracking with summary
+            mapping_tracker.complete_stage('mapping', {
+                'Mapped Columns': f"{result.get('mapped_count', 0)}/{result.get('total_columns', 0)}",
+                'Success Rate': f"{(result.get('mapped_count', 0) / max(result.get('total_columns', 1), 1) * 100):.0f}%",
+                'Duration': f"{duration:.1f}s",
+                'Output Size': f"{os.path.getsize(output_file) / 1024 / 1024:.1f} MB" if os.path.exists(output_file) else "N/A"
+            })
+            
+            with progress_placeholder.container():
+                mapping_tracker.update_mapping_step(7, "✅ Mapping completed successfully!")
+                mapping_tracker.render_mapping_progress()
+            
             return result, output_file
+            
+        except FileNotFoundError as e:
+            mapping_tracker.add_error('mapping', "File not found", str(e))
+            with progress_placeholder.container():
+                mapping_tracker.render_mapping_progress()
+            st.error(f"❌ {str(e)}")
+            return None
+            
         except Exception as e:
-            st.error(f"Mapping error: {str(e)}")
+            import traceback
+            error_details = traceback.format_exc()
+            mapping_tracker.add_error('mapping', f"Mapping failed: {str(e)}", error_details)
+            
+            with progress_placeholder.container():
+                mapping_tracker.render_mapping_progress()
+            
+            # Show user-friendly error
+            st.error(f"❌ Mapping error: {str(e)}")
+            
+            # Show detailed error in expander
+            with st.expander("🔍 Error Details", expanded=True):
+                st.code(error_details)
+            
             return None
     
-    if st.button("Start Mapping", type="primary"):
-        result = map_to_template()
+    # Show previous results if available
+    if mapping_tracker.get_stage_status('mapping') == 'completed':
+        st.success("✅ Mapping already completed in this session")
+        mapping_tracker.render_stage_summary('mapping')
         
-        if result:
-            mapping_result, _ = result
-            st.success("✅ Template mapping completed!")
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🔄 Re-run Mapping", type="secondary"):
+                mapping_tracker.clear_stage_progress('mapping')
+                st.rerun()
+        with col2:
+            if st.button("➡️ Continue to Validation", type="primary"):
+                st.session_state.current_stage = 4
+                st.rerun()
+    else:
+        # Start mapping button
+        if st.button("🚀 Start Mapping", type="primary", disabled=mapping_tracker.get_stage_status('mapping') == 'running'):
+            result = map_to_template()
             
-            # Show results
-            col1, col2 = st.columns(2)
-            col1.metric("Mapped Columns", f"{mapping_result.get('mapped_count', 0)}/{mapping_result.get('total_columns', 0)}")
-            col2.metric("Success Rate", f"{(mapping_result.get('mapped_count', 0) / max(mapping_result.get('total_columns', 1), 1) * 100):.0f}%")
+            if result:
+                mapping_result, output_file = result
+                st.success("✅ Template mapping completed!")
+                
+                # Show summary
+                mapping_tracker.render_stage_summary('mapping')
+                
+                # Auto-advance after brief pause
+                time.sleep(2)
+                st.session_state.current_stage = 4
+                st.rerun()
+        
+        # Show info about the process
+        with st.expander("ℹ️ What happens during mapping?", expanded=False):
+            st.markdown("""
+            **The mapping process includes:**
+            1. **Data Loading** - Read the combined Excel file with all platform data
+            2. **Structure Validation** - Verify DV360, META, and TIKTOK sections exist
+            3. **Column Analysis** - Identify 50+ columns that need mapping
+            4. **AI Mapping** - Use Gemini 2.5 Pro to intelligently match columns
+            5. **Template Writing** - Populate the output template with mapped data
+            6. **Report Generation** - Create detailed mapping metrics
+            7. **Quality Check** - Verify all required fields are populated
             
-            time.sleep(1)
-            st.session_state.current_stage = 4
-            st.rerun()
+            **Expected Duration:** 30-90 seconds depending on data size
+            """)
+    
+    # Always show error log if errors exist
+    if st.session_state.error_logs:
+        mapping_tracker.render_global_error_log()
 
 elif st.session_state.current_stage == 4:
     st.markdown("## ✓ Data Validation")

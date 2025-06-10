@@ -89,10 +89,17 @@ class WorkflowWrapper:
         self,
         input_file: str,
         template_file: str,
-        output_file: str
+        output_file: str,
+        progress_callback=None
     ) -> Dict[str, Any]:
         """
         Map combined data to output template
+        
+        Args:
+            input_file: Path to combined data file
+            template_file: Path to template file
+            output_file: Path for output file
+            progress_callback: Optional callback function(step, message) for progress updates
         
         Returns:
             Dict with mapping results
@@ -110,21 +117,87 @@ class WorkflowWrapper:
             cmd.extend(["--log-level", "DEBUG"])
         
         try:
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                check=True,
-                cwd=str(self.project_root)
-            )
+            # If we have a progress callback, parse output in real-time
+            if progress_callback:
+                process = subprocess.Popen(
+                    cmd,
+                    stdout=subprocess.PIPE,
+                    stderr=subprocess.PIPE,
+                    text=True,
+                    cwd=str(self.project_root),
+                    bufsize=1,
+                    universal_newlines=True
+                )
+                
+                output_lines = []
+                error_lines = []
+                
+                # Read output line by line
+                for line in process.stdout:
+                    output_lines.append(line)
+                    
+                    # Parse progress indicators
+                    if "Step" in line and "of" in line:
+                        try:
+                            # Extract step number from lines like "Step 2 of 8: Loading data"
+                            parts = line.strip().split()
+                            if len(parts) >= 5 and parts[0] == "Step":
+                                step = int(parts[1]) - 1  # Convert to 0-based
+                                message = " ".join(parts[4:]) if len(parts) > 4 else ""
+                                if progress_callback:
+                                    progress_callback(step, message)
+                        except:
+                            pass
+                    
+                    # Also check for specific progress messages
+                    if "Loading combined data" in line:
+                        progress_callback(1, "Loading Excel files and checking structure")
+                    elif "Validating data structure" in line:
+                        progress_callback(2, "Validating platform data sections")
+                    elif "columns for mapping" in line:
+                        progress_callback(3, line.strip())
+                    elif "Using LLM" in line or "AI" in line:
+                        progress_callback(4, "Applying AI-powered mapping with Gemini 2.5 Pro")
+                    elif "Writing to template" in line:
+                        progress_callback(5, "Writing mapped data to output template")
+                    elif "Generating report" in line:
+                        progress_callback(6, "Generating detailed mapping report")
+                
+                # Get any error output
+                for line in process.stderr:
+                    error_lines.append(line)
+                
+                # Wait for completion
+                process.wait()
+                
+                # Check return code
+                if process.returncode != 0:
+                    error_msg = "".join(error_lines) or "Unknown error"
+                    self.logger.error(f"Mapping failed: {error_msg}")
+                    raise RuntimeError(f"Template mapping failed: {error_msg}")
+                
+                result_stdout = "".join(output_lines)
+            else:
+                # Standard subprocess run without progress
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                    cwd=str(self.project_root)
+                )
+                result_stdout = result.stdout
             
             # Parse mapping results
-            mapping_results = self._parse_mapping_results(result.stdout, output_file)
+            mapping_results = self._parse_mapping_results(result_stdout, output_file)
             return mapping_results
             
         except subprocess.CalledProcessError as e:
             self.logger.error(f"Mapping failed: {e.stderr}")
             raise RuntimeError(f"Template mapping failed: {e.stderr}")
+        except Exception as e:
+            self.logger.error(f"Unexpected error during mapping: {str(e)}")
+            raise
     
     def validate_data(
         self,
