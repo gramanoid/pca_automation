@@ -32,7 +32,7 @@ st.markdown("""
     /* Import SF Pro font for Apple aesthetic */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
     
-    /* Root variables */
+    /* Root variables - Light mode */
     :root {
         --primary-blue: #0066CC;
         --hover-blue: #0051A2;
@@ -48,6 +48,40 @@ st.markdown("""
         --shadow-hover: 0 4px 8px rgba(0,0,0,0.12);
     }
     
+    /* Dark mode variables */
+    @media (prefers-color-scheme: dark) {
+        :root {
+            --primary-blue: #4A9EFF;
+            --hover-blue: #3A8EEF;
+            --success-green: #4CAF50;
+            --error-red: #F44336;
+            --warning-yellow: #FFB800;
+            --background: #0E1117;
+            --card-bg: #262730;
+            --text-primary: #FAFAFA;
+            --text-secondary: #A2A2A8;
+            --border-color: #3E4049;
+            --shadow: 0 2px 4px rgba(0,0,0,0.3);
+            --shadow-hover: 0 4px 8px rgba(0,0,0,0.5);
+        }
+    }
+    
+    /* Streamlit's dark mode class */
+    [data-testid="stAppViewContainer"][data-theme="dark"] {
+        --primary-blue: #4A9EFF;
+        --hover-blue: #3A8EEF;
+        --success-green: #4CAF50;
+        --error-red: #F44336;
+        --warning-yellow: #FFB800;
+        --background: #0E1117;
+        --card-bg: #262730;
+        --text-primary: #FAFAFA;
+        --text-secondary: #A2A2A8;
+        --border-color: #3E4049;
+        --shadow: 0 2px 4px rgba(0,0,0,0.3);
+        --shadow-hover: 0 4px 8px rgba(0,0,0,0.5);
+    }
+    
     /* Global styles */
     .stApp {
         background-color: var(--background);
@@ -61,8 +95,18 @@ st.markdown("""
     
     /* Sidebar styling */
     section[data-testid="stSidebar"] {
-        background-color: var(--card-bg);
+        background-color: var(--card-bg) !important;
         border-right: 1px solid var(--border-color);
+    }
+    
+    /* Dark mode sidebar */
+    [data-theme="dark"] section[data-testid="stSidebar"] {
+        background-color: #1A1C23 !important;
+    }
+    
+    /* Sidebar content */
+    section[data-testid="stSidebar"] .block-container {
+        background-color: transparent !important;
     }
     
     /* Button styling */
@@ -86,9 +130,15 @@ st.markdown("""
     
     /* File uploader styling */
     .uploadedFile {
-        background-color: #E8F4FD;
-        border: 1px solid #B8E0FF;
+        background-color: rgba(0, 102, 204, 0.1);
+        border: 1px solid var(--primary-blue);
         color: var(--primary-blue);
+    }
+    
+    /* Dark mode file uploader */
+    [data-theme="dark"] .uploadedFile {
+        background-color: rgba(74, 158, 255, 0.1);
+        border: 1px solid var(--primary-blue);
     }
     
     /* Progress bar */
@@ -108,9 +158,11 @@ st.markdown("""
     
     /* Expander */
     .streamlit-expanderHeader {
-        background-color: var(--background);
+        background-color: var(--card-bg);
+        border: 1px solid var(--border-color);
         border-radius: 6px;
         font-weight: 500;
+        color: var(--text-primary);
     }
     
     /* Success/Error/Warning messages */
@@ -121,7 +173,7 @@ st.markdown("""
     
     /* File uploader */
     [data-testid="stFileUploadDropzone"] {
-        background-color: var(--background);
+        background-color: var(--card-bg);
         border: 2px dashed var(--border-color);
         border-radius: 8px;
         transition: all 0.2s ease;
@@ -129,7 +181,12 @@ st.markdown("""
     
     [data-testid="stFileUploadDropzone"]:hover {
         border-color: var(--primary-blue);
-        background-color: #F0F7FF;
+        background-color: rgba(0, 102, 204, 0.05);
+    }
+    
+    /* Dark mode file uploader hover */
+    [data-theme="dark"] [data-testid="stFileUploadDropzone"]:hover {
+        background-color: rgba(74, 158, 255, 0.05);
     }
     
     /* Custom containers */
