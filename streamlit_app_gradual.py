@@ -126,7 +126,7 @@ with st.sidebar:
     stages = ["1. Data Upload", "2. Data Processing", "3. Template Mapping", "4. Validation", "5. Results"]
     
     if FEATURES['PROGRESS_PERSISTENCE'] and 'progress_display' in globals():
-        progress_display.render_sidebar_progress()
+        progress_display.render_sidebar_navigation()
     else:
         # Simple progress display
         for i, stage in enumerate(stages, 1):

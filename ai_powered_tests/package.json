@@ -1,0 +1,22 @@
+{
+  "name": "ai-powered-tests",
+  "version": "1.0.0",
+  "description": "AI-powered browser automation tests using Stagehand and Browser Use",
+  "type": "module",
+  "scripts": {
+    "test:stagehand": "node stagehand/test_streamlit_features.js",
+    "test:browser-use": "python browser_use/test_business_logic.py",
+    "test:all": "npm run test:stagehand && npm run test:browser-use"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.24.3",
+    "@browserbasehq/stagehand": "^1.14.0",
+    "dotenv": "^16.4.5",
+    "openai": "^4.52.7",
+    "playwright": "^1.48.0",
+    "zod": "^3.25.57"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0"
+  }
+}

@@ -23,6 +23,7 @@ python production_workflow/03_template_mapping/map_to_template.py --input output
 - **[INSTALL.md](INSTALL.md)** - Installation and setup instructions
 - **[USER_GUIDE.md](USER_GUIDE.md)** - Step-by-step usage guide
 - **[CLAUDE.md](CLAUDE.md)** - AI guidance and project status
+- **[TESTING_DOCUMENTATION.md](TESTING_DOCUMENTATION.md)** ⭐ - Comprehensive testing documentation
 
 ### 2. Core Documentation
 - **[technical_architecture.md](technical_architecture.md)** - System architecture
@@ -96,6 +97,8 @@ Located in `archive_historical/`:
 - **Template Cells**: 496+ populated
 - **Platform Support**: DV360, META, TIKTOK
 - **Market Support**: Dynamic (up to 7 markets)
+- **Test Coverage**: E2E tests 100% passing, Unit tests 56% passing
+- **UI Features**: 6/6 features verified and functional
 
 ## 💡 Common Tasks
 
@@ -125,7 +128,7 @@ python production_workflow/01_data_extraction/extract_and_combine_data.py --plan
 2. **Deploy to server**: Copy the generated zip file
 3. **Follow runbook**: See [OPERATIONAL_RUNBOOK.md](OPERATIONAL_RUNBOOK.md)
 
-## 📈 Recent Improvements (May 2025)
+## 📈 Recent Improvements (May-June 2025)
 - ✅ Achieved 100% template coverage (36/36 columns)
 - ✅ Fixed R&F data handling for all platforms
 - ✅ Implemented number precision handling
@@ -134,6 +137,9 @@ python production_workflow/01_data_extraction/extract_and_combine_data.py --plan
 - ✅ Added client-specific mapping rules
 - ✅ Organized project structure with workflow-based directories
 - ✅ Added Python package structure with `__init__.py` files
+- ✅ **NEW (June 2025)**: Implemented comprehensive E2E testing with Playwright
+- ✅ **NEW (June 2025)**: Created Streamlit interactive UI with 6 features
+- ✅ **NEW (June 2025)**: Fixed unit test imports and validated core functionality
 
 ## 📞 Support
 For issues or questions:

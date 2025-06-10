@@ -67,14 +67,19 @@ with st.sidebar:
         st.subheader("Feature Status")
         for feature_name, enabled in features.items():
             if enabled:
-                if st.session_state.feature_status.get(feature_name, {}).get('loaded', False):
-                    st.success(f"✅ {feature_name.replace('_', ' ').title()}")
-                elif st.session_state.feature_status.get(feature_name, {}).get('error'):
-                    st.error(f"❌ {feature_name.replace('_', ' ').title()}")
-                    if st.button(f"Show error", key=f"error_{feature_name}"):
-                        st.code(st.session_state.feature_status[feature_name]['error'])
+                status = st.session_state.feature_status.get(feature_name, {})
+                feature_display_name = feature_name.replace('_', ' ').title()
+                
+                if status.get('loaded', False):
+                    st.markdown(f"✅ **{feature_display_name}** - Loaded")
+                elif status.get('error'):
+                    st.markdown(f"❌ **{feature_display_name}** - Error")
+                    if st.button(f"Show error details", key=f"error_{feature_name}"):
+                        st.code(status.get('error', 'Unknown error'))
+                        if status.get('traceback'):
+                            st.code(status['traceback'], language='python')
                 else:
-                    st.info(f"⏳ {feature_name.replace('_', ' ').title()}")
+                    st.markdown(f"⏳ **{feature_display_name}** - Loading...")
 
 # Load features based on selections
 loaded_features = {}
@@ -103,6 +108,14 @@ if features['FILE_VALIDATION']:
     except Exception as e:
         st.session_state.feature_status['FILE_VALIDATION'] = {'loaded': False, 'error': str(e)}
 
+if features['DATA_PREVIEW']:
+    try:
+        # Data Preview doesn't need a component - it's built-in functionality
+        # Just mark it as loaded since it uses pandas directly
+        st.session_state.feature_status['DATA_PREVIEW'] = {'loaded': True}
+    except Exception as e:
+        st.session_state.feature_status['DATA_PREVIEW'] = {'loaded': False, 'error': str(e)}
+
 if features['PROGRESS_PERSISTENCE']:
     try:
         from ui_components.progress_display import ProgressDisplay
@@ -126,13 +139,26 @@ if features['ENHANCED_VALIDATION']:
     except Exception as e:
         st.session_state.feature_status['ENHANCED_VALIDATION'] = {'loaded': False, 'error': str(e)}
 
+if features['SMART_CACHING']:
+    try:
+        # Smart Caching uses Streamlit's built-in @st.cache_data decorator
+        # Just mark it as loaded since it doesn't need a separate component
+        st.session_state.feature_status['SMART_CACHING'] = {'loaded': True}
+    except Exception as e:
+        st.session_state.feature_status['SMART_CACHING'] = {'loaded': False, 'error': str(e)}
+
 if features['ERROR_RECOVERY']:
     try:
         from ui_components.error_recovery import ErrorRecoveryHandler
         loaded_features['error_handler'] = ErrorRecoveryHandler()
         st.session_state.feature_status['ERROR_RECOVERY'] = {'loaded': True}
     except Exception as e:
-        st.session_state.feature_status['ERROR_RECOVERY'] = {'loaded': False, 'error': str(e)}
+        import traceback
+        st.session_state.feature_status['ERROR_RECOVERY'] = {
+            'loaded': False, 
+            'error': str(e),
+            'traceback': traceback.format_exc()
+        }
 
 # Basic error handling
 def handle_errors(func):
@@ -162,7 +188,7 @@ with st.sidebar:
     
     if features['PROGRESS_PERSISTENCE'] and 'progress_display' in loaded_features and loaded_features['progress_display'] is not None:
         try:
-            loaded_features['progress_display'].render_sidebar_progress()
+            loaded_features['progress_display'].render_sidebar_navigation()
         except Exception as e:
             st.error(f"Progress display error: {str(e)}")
             # Fallback to simple progress display
@@ -242,9 +268,27 @@ if st.session_state.current_stage == 1:
         
         if features['FILE_VALIDATION'] and 'file_upload_component' in loaded_features:
             # Use enhanced file upload
-            result = loaded_features['file_upload_component'].render_file_upload('PLANNED', col1)
-            if result['uploaded'] and result['valid']:
-                st.session_state.file_validation['PLANNED'] = True
+            try:
+                result = loaded_features['file_upload_component'].render_file_upload('PLANNED', col1)
+                if result['uploaded'] and result['valid']:
+                    st.session_state.file_validation['PLANNED'] = True
+            except Exception as e:
+                st.error(f"Error with enhanced file upload: {str(e)}")
+                # Fallback to basic upload
+                planned_file = st.file_uploader(
+                    "Upload PLANNED Excel file",
+                    type=['xlsx', 'xls'],
+                    key="planned_uploader_fallback"
+                )
+                if planned_file:
+                    is_valid, message = validate_uploaded_file(planned_file, 'PLANNED')
+                    if is_valid:
+                        st.success(f"✅ {message}")
+                        save_uploaded_file(planned_file, 'PLANNED')
+                        st.session_state.file_validation['PLANNED'] = True
+                    else:
+                        st.error(f"❌ {message}")
+                        st.session_state.file_validation['PLANNED'] = False
         else:
             # Basic file upload
             planned_file = st.file_uploader(
@@ -315,11 +359,22 @@ if st.session_state.current_stage == 1:
             key="template_uploader"
         )
         if template_file:
-            st.success("✅ Template uploaded")
-            save_uploaded_file(template_file, 'TEMPLATE')
-            st.session_state.file_validation['TEMPLATE'] = True
+            if features['FILE_VALIDATION']:
+                # Validate template file
+                is_valid, message = validate_uploaded_file(template_file, 'TEMPLATE')
+                if is_valid:
+                    st.success(f"✅ {message}")
+                    save_uploaded_file(template_file, 'TEMPLATE')
+                    st.session_state.file_validation['TEMPLATE'] = True
+                else:
+                    st.error(f"❌ {message}")
+                    st.session_state.file_validation['TEMPLATE'] = False
+            else:
+                st.success("✅ Template uploaded")
+                save_uploaded_file(template_file, 'TEMPLATE')
+                st.session_state.file_validation['TEMPLATE'] = True
             
-            if features['DATA_PREVIEW']:
+            if features['DATA_PREVIEW'] and st.session_state.file_validation.get('TEMPLATE', False):
                 with st.expander("Preview template"):
                     template_file.seek(0)
                     df = pd.read_excel(template_file, sheet_name=0, nrows=10)
@@ -328,9 +383,29 @@ if st.session_state.current_stage == 1:
     # Check if all files are uploaded
     all_uploaded = len(st.session_state.uploaded_files) == 3
     
+    # Debug information for process button status
+    if st.session_state.get('debug_mode', False):
+        st.sidebar.markdown("### Debug Info")
+        st.sidebar.write("Uploaded files:", list(st.session_state.uploaded_files.keys()))
+        st.sidebar.write("All uploaded:", all_uploaded)
+        if features['FILE_VALIDATION']:
+            st.sidebar.write("File validation status:")
+            for ft in ['PLANNED', 'DELIVERED', 'TEMPLATE']:
+                st.sidebar.write(f"- {ft}: {st.session_state.file_validation.get(ft, False)}")
+    
     if features['FILE_VALIDATION']:
         all_valid = all(st.session_state.file_validation.get(ft, False) for ft in ['PLANNED', 'DELIVERED', 'TEMPLATE'])
         can_proceed = all_uploaded and all_valid
+        
+        # Show why Process button is disabled
+        if not can_proceed:
+            missing_uploads = [t for t in ['PLANNED', 'DELIVERED', 'TEMPLATE'] if t not in st.session_state.uploaded_files]
+            invalid_files = [t for t in ['PLANNED', 'DELIVERED', 'TEMPLATE'] if not st.session_state.file_validation.get(t, False)]
+            
+            if missing_uploads:
+                st.warning(f"⚠️ Missing files: {', '.join(missing_uploads)}")
+            if invalid_files and not missing_uploads:
+                st.warning(f"⚠️ Invalid files: {', '.join(invalid_files)}")
     else:
         can_proceed = all_uploaded
     

@@ -1,0 +1,28 @@
+# Virtual environments
+test_venv/
+venv/
+env/
+.env
+
+# Node modules
+node_modules/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Test outputs
+*.log
+test_outputs/
+screenshots/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
