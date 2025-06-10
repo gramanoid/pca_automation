@@ -303,9 +303,12 @@ class EnhancedValidationDashboard:
         
         if other_recs:
             for rec in other_recs:
-                with st.expander(f"{rec['title']}"):
-                    st.markdown(f"**Priority**: {rec['priority']}")
-                    st.markdown(f"**Description**: {rec['description']}")
+                # Use containers instead of expanders to avoid nesting
+                container = st.container()
+                with container:
+                    st.markdown(f"**{rec['title']}**")
+                    st.markdown(f"Priority: {rec['priority']} | {rec['description']}")
+                    st.divider()
     
     # Helper methods
     def _categorize_checks(self, checks: Dict[str, Any]) -> Dict[str, List]:

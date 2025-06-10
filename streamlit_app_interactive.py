@@ -329,18 +329,47 @@ with st.sidebar:
     
     # Settings
     st.markdown("## Settings")
-    st.checkbox("Enable AI Mapping", value=True, key="enable_llm_mapping")
+    ai_enabled = st.checkbox("Enable AI Mapping", value=True, key="enable_llm_mapping")
+    
+    # Show AI model info when enabled
+    if ai_enabled:
+        st.info("🤖 **AI Model:** Gemini 2.5 Pro via OpenRouter")
+        st.caption("Used for intelligent column mapping")
+    else:
+        st.warning("⚠️ AI mapping disabled - using basic rules")
     
     # Progress
     progress = (st.session_state.current_stage - 1) / 5
     st.progress(progress)
     st.caption(f"Step {st.session_state.current_stage} of 5")
+    
+    st.divider()
+    
+    # Start over button
+    if st.button("🔄 Start from Beginning", type="secondary", use_container_width=True):
+        # Clear all session state
+        for key in list(st.session_state.keys()):
+            if key not in ['enable_llm_mapping']:  # Keep some settings
+                del st.session_state[key]
+        st.session_state.current_stage = 1
+        st.rerun()
 
-# Main header
-st.markdown("""
-# PCA Automation
-#### Transform your media plans into actionable insights
-""")
+# Main header with start over button
+col1, col2 = st.columns([4, 1])
+with col1:
+    st.markdown("""
+    # PCA Automation
+    #### Transform your media plans into actionable insights
+    """)
+with col2:
+    st.write("")  # Spacing
+    if st.button("🔄 Start Over", key="top_start_over"):
+        # Clear all session state
+        for key in list(st.session_state.keys()):
+            if key not in ['enable_llm_mapping']:  # Keep some settings
+                del st.session_state[key]
+        st.session_state.current_stage = 1
+        st.rerun()
 
 # Global error notification
 if 'error_logs' in st.session_state and st.session_state.error_logs:
@@ -695,7 +724,14 @@ elif st.session_state.current_stage == 2:
 
 elif st.session_state.current_stage == 3:
     st.markdown("## 🗺️ Template Mapping")
-    st.markdown("Map your combined data to the output template using AI.")
+    
+    # Show AI status
+    if st.session_state.get('enable_llm_mapping', True):
+        st.markdown("Map your combined data to the output template using **AI-powered intelligent mapping**.")
+        st.success("🤖 **Gemini 2.5 Pro** is active and will intelligently match columns between your data sources")
+    else:
+        st.markdown("Map your combined data to the output template using **rule-based mapping**.")
+        st.warning("⚠️ AI mapping is disabled. Using basic column name matching only.")
     
     # Get trackers
     progress_tracker = get_progress_tracker()
@@ -743,7 +779,7 @@ elif st.session_state.current_stage == 3:
                     (1, "Loading Excel files and checking structure"),
                     (2, "Validating DV360, META, and TIKTOK data sections"),
                     (3, "Analyzing 50+ columns for intelligent mapping"),
-                    (4, "Applying AI-powered column matching with Gemini 2.5 Pro"),
+                    (4, "Applying AI-powered column matching with Gemini 2.5 Pro" if st.session_state.get('enable_llm_mapping', True) else "Applying rule-based column matching"),
                     (5, "Writing mapped data to template (this may take 30-60 seconds)"),
                     (6, "Generating mapping report and validation metrics"),
                     (7, "Finalizing output and saving Excel file")
@@ -874,18 +910,36 @@ Environment:
         
         # Show info about the process
         with st.expander("ℹ️ What happens during mapping?", expanded=False):
-            st.markdown("""
-            **The mapping process includes:**
-            1. **Data Loading** - Read the combined Excel file with all platform data
-            2. **Structure Validation** - Verify DV360, META, and TIKTOK sections exist
-            3. **Column Analysis** - Identify 50+ columns that need mapping
-            4. **AI Mapping** - Use Gemini 2.5 Pro to intelligently match columns
-            5. **Template Writing** - Populate the output template with mapped data
-            6. **Report Generation** - Create detailed mapping metrics
-            7. **Quality Check** - Verify all required fields are populated
-            
-            **Expected Duration:** 30-90 seconds depending on data size
-            """)
+            if st.session_state.get('enable_llm_mapping', True):
+                st.markdown("""
+                **The AI-powered mapping process includes:**
+                1. **Data Loading** - Read the combined Excel file with all platform data
+                2. **Structure Validation** - Verify DV360, META, and TIKTOK sections exist
+                3. **Column Analysis** - Identify 50+ columns that need mapping
+                4. **🤖 AI Mapping** - Use **Gemini 2.5 Pro** to intelligently match columns:
+                   - Understands semantic meaning of column names
+                   - Handles variations in naming conventions
+                   - Maps complex relationships between fields
+                5. **Template Writing** - Populate the output template with mapped data
+                6. **Report Generation** - Create detailed mapping metrics
+                7. **Quality Check** - Verify all required fields are populated
+                
+                **Expected Duration:** 30-90 seconds depending on data size
+                """)
+            else:
+                st.markdown("""
+                **The rule-based mapping process includes:**
+                1. **Data Loading** - Read the combined Excel file with all platform data
+                2. **Structure Validation** - Verify DV360, META, and TIKTOK sections exist
+                3. **Column Analysis** - Identify 50+ columns that need mapping
+                4. **Rule-based Mapping** - Match columns using exact name matching
+                5. **Template Writing** - Populate the output template with mapped data
+                6. **Report Generation** - Create mapping metrics
+                7. **Quality Check** - Verify required fields are populated
+                
+                **Expected Duration:** 10-30 seconds depending on data size
+                **Note:** Without AI, some columns may not be mapped if names don't match exactly
+                """)
     
     # Always show error log if errors exist
     if st.session_state.error_logs:
