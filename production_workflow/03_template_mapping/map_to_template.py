@@ -34,6 +34,9 @@ monitor_performance_module = importlib.import_module('production_workflow.05_mon
 PerformanceMonitor = monitor_performance_module.PerformanceMonitor
 ProgressTracker = monitor_performance_module.ProgressTracker
 
+# Import secure API key manager
+from production_workflow.utils.secure_api_key import get_api_key
+
 # Add precision handler import
 sys.path.append(str(Path(__file__).parent.parent))
 try:
@@ -73,7 +76,8 @@ class SimpleLLMMapper:
         else:
             self.precision_handler = None
             
-        self.api_key = api_key or os.getenv("ANTHROPIC_API_KEY")
+        # Use secure API key manager to get the key
+        self.api_key = api_key or get_api_key()
         if not self.api_key:
             logger.warning("No Anthropic API key found. LLM features will be disabled.")
             self.claude = None

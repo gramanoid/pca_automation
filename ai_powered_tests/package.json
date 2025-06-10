@@ -6,7 +6,8 @@
   "scripts": {
     "test:stagehand": "node stagehand/test_streamlit_features.js",
     "test:browser-use": "python browser_use/test_business_logic.py",
-    "test:all": "npm run test:stagehand && npm run test:browser-use"
+    "test:all": "npm run test:stagehand && npm run test:browser-use",
+    "test:production": "node test_production_stagehand.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.24.3",

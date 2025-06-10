@@ -8,6 +8,11 @@ import json
 import os
 from pathlib import Path
 from typing import Dict, Any, Optional
+import sys
+
+# Add parent directory to path
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from production_workflow.utils.secure_api_key import get_api_key
 
 class ConfigSidebar:
     """Component for managing configuration settings and templates"""
@@ -67,7 +72,7 @@ class ConfigSidebar:
         # Get current settings from session state
         current_config = {
             'client_id': os.getenv('CLIENT_ID', ''),
-            'api_key_set': bool(os.getenv('ANTHROPIC_API_KEY')),
+            'api_key_set': bool(get_api_key()),  # Use secure API key manager
             'enable_llm_mapping': st.session_state.get('enable_llm_mapping', True),
             'validation_strict_mode': st.session_state.get('validation_strict_mode', False),
             'auto_calculate_totals': st.session_state.get('auto_calculate_totals', True),
@@ -134,15 +139,33 @@ class ConfigSidebar:
                 os.environ["CLIENT_ID"] = client_id
             
             # API settings
-            api_key = st.text_input(
-                "Anthropic API Key",
-                value=os.getenv("ANTHROPIC_API_KEY", ""),
-                type="password",
-                help="Required for enhanced LLM mapping",
-                disabled=selected_template != 'Custom'
-            )
-            if api_key:
-                os.environ["ANTHROPIC_API_KEY"] = api_key
+            current_api_key = get_api_key()
+            has_hardcoded_key = current_api_key and not os.getenv("ANTHROPIC_API_KEY")
+            
+            if has_hardcoded_key:
+                st.success("🔐 Using secure team API key - No configuration needed!")
+                st.caption("Your colleagues can use this app without entering any API key")
+            elif current_api_key:
+                st.info("🔑 Using API key from environment variable")
+            else:
+                st.warning("⚠️ No API key configured - AI mapping will be disabled")
+            
+            # Only show API key input in Custom mode
+            if selected_template == 'Custom':
+                st.divider()
+                st.caption("Advanced: Override Team API Key")
+                api_key = st.text_input(
+                    "Personal API Key (Optional)",
+                    value=os.getenv("ANTHROPIC_API_KEY", ""),
+                    type="password",
+                    help="Only enter if you want to use your own key instead of the team key",
+                    placeholder="Leave empty to use team key"
+                )
+                if api_key:
+                    os.environ["ANTHROPIC_API_KEY"] = api_key
+                elif "ANTHROPIC_API_KEY" in os.environ and not api_key:
+                    # Clear the environment variable if user empties the field
+                    del os.environ["ANTHROPIC_API_KEY"]
             
             # Processing options
             st.subheader("Processing Options")
