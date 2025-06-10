@@ -1,6 +1,6 @@
 """
-PCA Automation - Interactive Feature Selection
-Enable features using checkboxes in the sidebar - no environment variables needed!
+PCA Automation - All Features Enabled
+All features are now enabled by default for the best experience!
 """
 
 import streamlit as st
@@ -45,61 +45,20 @@ if 'feature_status' not in st.session_state:
 if 'stage_status' not in st.session_state:
     st.session_state.stage_status = {}
 
-# Feature selection in sidebar
-with st.sidebar:
-    st.header("🎛️ Feature Selection")
-    st.info("Enable features one by one to test what works!")
-    
-    # Feature checkboxes
-    features = {
-        'DATA_PREVIEW': st.checkbox("📊 Data Preview", value=False, help="Show preview of uploaded files"),
-        'FILE_VALIDATION': st.checkbox("✅ File Validation", value=False, help="Validate file structure and contents"),
-        'PROGRESS_PERSISTENCE': st.checkbox("📈 Progress Tracking", value=False, help="Enhanced progress indicators"),
-        'SMART_CACHING': st.checkbox("⚡ Smart Caching", value=False, help="Cache results for better performance"),
-        'ERROR_RECOVERY': st.checkbox("🔧 Error Recovery", value=False, help="Enhanced error handling with recovery options"),
-        'ENHANCED_VALIDATION': st.checkbox("📉 Enhanced Validation", value=False, help="Validation dashboard with charts"),
-    }
-    
-    st.divider()
-    
-    # Show feature loading status
-    if any(features.values()):
-        st.subheader("Feature Status")
-        for feature_name, enabled in features.items():
-            if enabled:
-                status = st.session_state.feature_status.get(feature_name, {})
-                feature_display_name = feature_name.replace('_', ' ').title()
-                
-                if status.get('loaded', False):
-                    st.markdown(f"✅ **{feature_display_name}** - Loaded")
-                elif status.get('error'):
-                    st.markdown(f"❌ **{feature_display_name}** - Error")
-                    if st.button(f"Show error details", key=f"error_{feature_name}"):
-                        st.code(status.get('error', 'Unknown error'))
-                        if status.get('traceback'):
-                            st.code(status['traceback'], language='python')
-                else:
-                    st.markdown(f"⏳ **{feature_display_name}** - Loading...")
+# All features are now enabled by default
+features = {
+    'DATA_PREVIEW': True,
+    'FILE_VALIDATION': True,
+    'PROGRESS_PERSISTENCE': True,
+    'SMART_CACHING': True,
+    'ERROR_RECOVERY': True,
+    'ENHANCED_VALIDATION': True,
+}
 
-# Load features based on selections
+# Load features
 loaded_features = {}
 
-# Show feature loading status in expander for debugging
-if any(features.values()):
-    with st.sidebar.expander("🔧 Feature Loading Status", expanded=False):
-        for feature_name, enabled in features.items():
-            if enabled:
-                status = st.session_state.feature_status.get(feature_name, {})
-                if status.get('loaded'):
-                    st.success(f"✅ {feature_name}")
-                elif status.get('error'):
-                    st.error(f"❌ {feature_name}")
-                    if status.get('traceback'):
-                        st.code(status['traceback'], language='python')
-                else:
-                    st.info(f"⏳ {feature_name}")
-
-# Try to load each enabled feature
+# Load all features
 if features['FILE_VALIDATION']:
     try:
         from ui_components.file_upload import FileUploadComponent
@@ -182,7 +141,6 @@ def handle_errors(func):
 
 # Sidebar navigation
 with st.sidebar:
-    st.divider()
     st.header("Navigation")
     stages = ["1. Data Upload", "2. Data Processing", "3. Template Mapping", "4. Validation", "5. Results"]
     
@@ -655,7 +613,7 @@ elif st.session_state.current_stage == 5:
 st.divider()
 st.markdown("""
 <div style='text-align: center; color: #6c757d;'>
-    PCA Automation - Interactive Feature Mode | 
-    Enable features using the sidebar checkboxes
+    PCA Automation - All Features Enabled | 
+    Powered by AI-Enhanced Processing
 </div>
 """, unsafe_allow_html=True)
